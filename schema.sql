@@ -245,7 +245,7 @@ INSERT INTO campaign_config (
     '#terapia', '#saudemental', '#consultoriodepsicologia',
     '#psicoterapia', '#psicologaclinica', '#terapeutaonline'
   ],
-  ARRAY['@exemplo_concorrente_psico'],   -- TROCAR pelo @ real de concorrente do nicho
+  ARRAY['@psico_manager', '@psicoplanner.app', '@ninsaude'],
   'Sinapsi — sistema de gestão para psicólogos',
   'https://sinapsi.qszuuz.easypanel.host',
   ARRAY[
@@ -256,7 +256,7 @@ INSERT INTO campaign_config (
   ],
   'Oi {{first_name}}! Vi seu trabalho aqui no Instagram, muito bonito. Tenho um sistema de gestão feito especificamente para psicólogos — agenda, prontuários e financeiro tudo integrado, por R$67/mês. Posso te mostrar como funciona em 5 minutos?',
   'Oi {{first_name}}, tudo bem? Passei aqui de novo — desenvolvi o Sinapsi pra facilitar a gestão do consultório de psicólogos e acho que pode te ajudar bastante. Sem compromisso, quer dar uma olhada rápida?',
-  '5511999999999',   -- TROCAR pelo seu WhatsApp real com DDI
+  '5554981133456',
   30,
   65
 );

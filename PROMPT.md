@@ -26,7 +26,10 @@ HASHTAGS:
   #terapia #saudemental #consultoriodepsicologia
   #psicoterapia #psicologaclinica #terapeutaonline
 
-CONCORRENTES:      [ADICIONAR @handles de concorrentes do nicho psico]
+CONCORRENTES:
+  @psico_manager     (37k seguidores — sistema específico para psicólogos)
+  @psicoplanner.app  (11k seguidores — app para psicólogas)
+  @ninsaude          (gestão clínica geral, atende psicólogos)
 
 VERIFIED_CLAIMS:
   - Sistema desenvolvido especificamente para psicólogos e terapeutas
@@ -49,6 +52,8 @@ DM_FOLLOWUP (após 48h sem resposta):
   Oi {{first_name}}, tudo bem? Passei aqui de novo — o Sinapsi pode
   facilitar bastante a gestão do seu consultório.
   Sem compromisso, quer dar uma olhada rápida?
+
+WHATSAPP_HANDOFF:  5554981133456
 
 LIMITES:
   Max DMs por dia:      30
