@@ -29,10 +29,16 @@ runWorker("qualify", async (job) => {
   const qualified = qualification.is_icp && qualification.score >= campaign.min_score_to_dm;
 
   await query(
-    `UPDATE leads SET score = $2, score_reason = $3, qualified_at = NOW(),
-       status = $4, updated_at = NOW() WHERE id = $1`,
-    [lead.id, qualification.score, qualification.reason, qualified ? "qualified" : "disqualified"],
+    `UPDATE leads SET score = $2, score_reason = $3, is_icp = $4, qualified_at = NOW(),
+       status = $5, updated_at = NOW() WHERE id = $1`,
+    [lead.id, qualification.score, qualification.reason, qualification.is_icp, qualified ? "qualified" : "disqualified"],
   );
+  console.info(`[worker:qualify] resultado ${JSON.stringify({
+    username: lead.ig_username,
+    score: qualification.score,
+    reason: qualification.reason,
+    is_icp: qualification.is_icp,
+  })}`);
   if (qualified) await enqueueJob("outreach", { leadId: lead.id });
   return { action: "complete" };
 }).catch((error) => {

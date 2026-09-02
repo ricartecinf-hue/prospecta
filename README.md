@@ -32,6 +32,8 @@ psql "$DATABASE_URL" -f migrations/001_runtime_safety.sql
 
 Essa migração adiciona o circuit breaker compartilhado, a reserva global do intervalo entre DMs e o controle de consumo da IA, além de corrigir o contador diário para nunca ultrapassar o máximo.
 
+Quem migrou de OpenAI para Gemini deve aplicar também `migrations/002_requeue_openai_qualifications.sql`; ela libera imediatamente qualificações que o provedor antigo deixou reagendadas no futuro.
+
 ## Chrome e sessão do Instagram
 
 No macOS, inicie o Chrome dedicado com:

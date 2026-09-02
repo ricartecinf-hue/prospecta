@@ -23,6 +23,7 @@ export interface Lead extends TenantScoped {
   niche: string;
   score: number;
   score_reason: string | null;
+  is_icp: boolean | null;
   qualified_at: Date | null;
   status: LeadStatus;
   do_not_contact: boolean;

@@ -103,6 +103,8 @@ Score 85–100: lead ideal`;
   await audit("gemini.qualification.after", {
     username: profile.username,
     score: parsed.score,
+    reason: parsed.reason,
+    is_icp: parsed.is_icp,
     estimatedCost,
   });
   return parsed;

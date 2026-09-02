@@ -34,6 +34,7 @@ CREATE TABLE prospecta.leads (
   niche           TEXT NOT NULL,           -- MVP: 'psicologo'
   score           INTEGER DEFAULT 0,       -- 0–100 via Gemini
   score_reason    TEXT,                    -- explicação do score
+  is_icp          BOOLEAN,                 -- decisão estruturada retornada pela IA
   qualified_at    TIMESTAMPTZ,
   
   -- Status no funil
