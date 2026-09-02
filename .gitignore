@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.env
+.env.local
+playwright-report/
+test-results/
+graphify-out/
+npm-debug.log*
+*.tsbuildinfo

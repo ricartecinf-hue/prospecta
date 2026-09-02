@@ -1,0 +1,43 @@
+{
+  "name": "prospecta",
+  "description": "Prospecta — prospecção autônoma e qualificação de leads no Instagram.",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test src/lib/*.test.ts",
+    "jobs:start": "tsx src/workers/index.ts",
+    "worker:prospector": "tsx src/workers/prospector.ts",
+    "worker:qualifier": "tsx src/workers/qualifier.ts",
+    "worker:outreach": "tsx src/workers/outreach.ts",
+    "worker:followup": "tsx src/workers/followup.ts",
+    "worker:inbox": "tsx src/workers/inbox.ts",
+    "worker:handoff": "tsx src/workers/handoff.ts",
+    "jobs:seed": "tsx src/scripts/seed-jobs.ts"
+  },
+  "dependencies": {
+    "next": "16.3.4",
+    "openai": "^6.0.0",
+    "pg": "^8.16.0",
+    "playwright": "^1.55.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tsx": "^4.20.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5.9.0"
+  }
+}
