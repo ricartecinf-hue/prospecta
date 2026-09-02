@@ -131,7 +131,7 @@ DATABASE_URL=postgresql://...
 
 # OpenAI
 OPENAI_API_KEY=sk-...
-OPENAI_MONTHLY_BUDGET_USD=50
+OPENAI_MONTHLY_BUDGET_USD=5
 
 # Chrome CDP
 CHROME_CDP_URL=http://localhost:9222
@@ -140,6 +140,10 @@ CHROME_CDP_URL=http://localhost:9222
 EVOLUTION_API_URL=http://...
 EVOLUTION_API_KEY=...
 EVOLUTION_INSTANCE=...
+
+# Travas externas (manter false até concluir o smoke test)
+INSTAGRAM_DMS_ENABLED=false
+WHATSAPP_HANDOFF_ENABLED=false
 
 # Fuso horário
 TZ=America/Sao_Paulo

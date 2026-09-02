@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import { audit, getCampaignConfig, query } from "@/lib/db";
 import { enqueueJob } from "@/lib/job-queue";
 

@@ -18,7 +18,9 @@ npm install
 cp .env.example .env
 ```
 
-Preencha todas as variáveis de `.env`. Para um banco Supabase, mantenha `DATABASE_SSL=true` e `DATABASE_SCHEMA=prospecta`. O schema dedicado mantém as tabelas do Prospecta isoladas de outros sistemas hospedados no mesmo projeto Supabase. As tarifas usadas para estimar o orçamento mensal da OpenAI são configuráveis por ambiente; confira os valores atuais da sua conta antes de produção.
+Preencha todas as variáveis de `.env`. Para um banco Supabase, mantenha `DATABASE_SSL=true` e `DATABASE_SCHEMA=prospecta`. O schema dedicado mantém as tabelas do Prospecta isoladas de outros sistemas hospedados no mesmo projeto Supabase. O arquivo é ignorado pelo Git e nunca deve ser enviado ao repositório.
+
+O orçamento mensal padrão da OpenAI é `US$ 5`. As duas travas de ações externas começam em `false`: `INSTAGRAM_DMS_ENABLED` e `WHATSAPP_HANDOFF_ENABLED`. Enquanto estiverem assim, os respectivos jobs são auditados e reagendados, sem enviar mensagens nem reservar uma vaga no limite diário.
 
 Em uma instalação nova, aplique somente `schema.sql`; ele já inclui as estruturas de segurança e cria tudo dentro do schema `prospecta`. Se uma versão anterior do schema inicial já havia sido aplicada, execute apenas:
 
@@ -30,34 +32,71 @@ Essa migração adiciona o circuit breaker compartilhado, a reserva global do in
 
 ## Chrome e sessão do Instagram
 
-Inicie manualmente o Chrome com uma porta CDP e um perfil dedicado. No macOS, por exemplo:
+No macOS, inicie o Chrome dedicado com:
 
 ```bash
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
-  --remote-debugging-port=9222 \
-  --user-data-dir="$PWD/.chrome-prospecta"
+npm run jobs:local
 ```
 
-Faça login no Instagram manualmente e deixe uma aba aberta. O Prospecta chama somente `chromium.connectOverCDP(CHROME_CDP_URL)` e reutiliza essa aba. Nunca exponha a porta 9222 à internet; use rede privada, firewall ou túnel. Se a tela de login aparecer, todos os jobs são pausados e um evento `instagram.session_expired` é gravado. Após refazer o login, use “Já fiz login — reativar” no dashboard.
+Na primeira execução, o diagnóstico pedirá que você faça login manualmente no Instagram e deixe uma aba aberta. Rode o mesmo comando outra vez depois do login. O perfil persistente fica em `.chrome-prospecta`, então a sessão será reutilizada após reinícios. O Prospecta chama somente `chromium.connectOverCDP(CHROME_CDP_URL)`; não tenta login automático. A porta CDP fica presa a `127.0.0.1` e nunca deve ser publicada na internet.
+
+Se a tela de login aparecer depois, todos os jobs são pausados e um evento `instagram.session_expired` é gravado. Após refazer o login, use “Já fiz login — reativar” no dashboard.
 
 Seletores do Instagram mudam sem aviso. Antes de ativar envios, valide descoberta, leitura de perfil, abertura do Direct e envio com uma conta de teste e baixo volume.
 
 ## Execução local
 
-Crie os jobs recorrentes iniciais uma única vez (o comando é idempotente para jobs ativos):
+Com o `.env` preenchido, rode primeiro o diagnóstico somente leitura:
+
+```bash
+npm run jobs:check
+```
+
+Ele valida as tabelas e campanha do Supabase, o Chrome CDP com uma aba do Instagram, a autorização para acessar `gpt-4o-mini` e a instância da Evolution API. A checagem da OpenAI consulta o modelo, sem gerar texto e sem consumir tokens. Nenhum teste envia DM ou WhatsApp.
+
+Crie os jobs recorrentes iniciais uma única vez; o comando é idempotente para jobs ativos:
 
 ```bash
 npm run jobs:seed
 ```
 
-Execute os dois serviços em terminais separados:
+Inicie todos os workers, o Chrome dedicado e o preflight com:
 
 ```bash
-npm run jobs:start
-npm run dev
+npm run jobs:local
 ```
 
-`jobs:start` mantém prospector, qualifier, outreach, follow-up, inbox e handoff no mesmo processo. As ações no Chrome são serializadas internamente para que os workers não disputem a mesma aba.
+`jobs:local` só inicia os workers se o diagnóstico inteiro passar. `jobs:start` continua disponível para ambientes de servidor. Ambos mantêm prospector, qualifier, outreach, follow-up, inbox e handoff no mesmo processo; as ações no Chrome são serializadas internamente.
+
+Depois do smoke test com as travas ligadas, libere uma integração de cada vez no `.env`:
+
+```env
+INSTAGRAM_DMS_ENABLED=true
+WHATSAPP_HANDOFF_ENABLED=false
+```
+
+Reinicie os workers para ler o novo valor. Comece com uma conta de teste e só ative o handoff quando a Evolution API também estiver validada.
+
+### Início automático no macOS
+
+Depois de preencher o `.env`, autenticar o Instagram e obter sucesso em `npm run jobs:check`, instale o agente do usuário:
+
+```bash
+npm run jobs:install-macos
+```
+
+O `launchd` iniciará o Chrome dedicado e os workers quando Ricardo entrar no macOS, reiniciando o processo se ele cair. O instalador registra o caminho exato do Node atual. Para ver o estado e os logs:
+
+```bash
+launchctl print gui/$(id -u)/com.prospecta.jobs
+tail -f .logs/jobs.out.log .logs/jobs.err.log
+```
+
+Após alterar o `.env`, reinicie o serviço:
+
+```bash
+launchctl kickstart -k gui/$(id -u)/com.prospecta.jobs
+```
 
 O dashboard fica em `http://localhost:3000`. Em produção, `DASHBOARD_USER` e `DASHBOARD_PASSWORD` são obrigatórios e protegem tanto as páginas quanto as rotas de configuração.
 
@@ -75,7 +114,9 @@ Toda ação externa (perfil, DM, inbox, OpenAI e WhatsApp) gera eventos antes/de
 
 ## Deploy no EasyPanel
 
-O Dockerfile possui exatamente dois targets de serviço, ambos com as mesmas variáveis e a mesma rede privada:
+Para o cenário atual, a arquitetura recomendada é híbrida: `prospecta-web` permanece no EasyPanel e `prospecta-jobs` roda no Mac sempre ligado, porque só o Mac possui a sessão real do Instagram. Os dois compartilham o mesmo Supabase. Não é necessário abrir porta no Mac nem expor o Chrome CDP.
+
+O Dockerfile mantém dois targets para permitir uma migração futura dos workers a um host com Chrome privado:
 
 | Serviço | Comando |
 |---|---|
@@ -91,7 +132,7 @@ docker build --target prospecta-jobs -t prospecta-jobs .
 
 Depois do primeiro deploy, abra um console temporário e rode `npm run jobs:seed`. Configure health check HTTP no dashboard (`/dashboard`, aceitando o desafio Basic Auth). Workers não precisam de porta pública.
 
-`CHROME_CDP_URL` deve apontar para o Chrome autenticado acessível na rede privada do EasyPanel; `localhost` só funciona se o Chrome estiver no mesmo container, o que este projeto deliberadamente não inicia. Não publique CDP via domínio público.
+Se usar o modo híbrido, pause ou remova o serviço `prospecta-jobs` do EasyPanel para não haver dois consumidores da fila. No serviço web, mantenha apenas as variáveis de banco e autenticação do dashboard. As credenciais de OpenAI, Chrome e Evolution pertencem ao `.env` local dos workers.
 
 ## Operação e manutenção
 
@@ -109,6 +150,7 @@ Depois do primeiro deploy, abra um console temporário e rode `npm run jobs:seed
 npm test
 npm run typecheck
 npm run build
+npm run jobs:check
 ```
 
-Os testes automatizados cobrem regras puras de horário, texto/opt-out e contagens compactas. A integração real com Instagram, Supabase, OpenAI e Evolution API exige as credenciais e a sessão externa; faça um smoke test controlado antes de liberar a campanha.
+Os testes automatizados cobrem regras puras de horário, texto/opt-out, travas externas e contagens compactas. O último comando é o smoke test de integração e exige as credenciais e a sessão externa; ele não envia mensagens.

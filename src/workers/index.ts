@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 const workers = [
   "prospector",
   "qualifier",

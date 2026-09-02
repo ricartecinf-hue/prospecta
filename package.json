@@ -12,6 +12,9 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test src/lib/*.test.ts",
+    "jobs:check": "tsx src/scripts/preflight.ts",
+    "jobs:local": "./scripts/run-jobs-macos.sh",
+    "jobs:install-macos": "./scripts/install-macos-launch-agent.sh",
     "jobs:start": "tsx src/workers/index.ts",
     "worker:prospector": "tsx src/workers/prospector.ts",
     "worker:qualifier": "tsx src/workers/qualifier.ts",
@@ -22,6 +25,7 @@
     "jobs:seed": "tsx src/scripts/seed-jobs.ts"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
     "next": "16.3.4",
     "openai": "^6.0.0",
     "pg": "^8.16.0",

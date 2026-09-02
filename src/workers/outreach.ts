@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { recordSendFailure, recordSendSuccess } from "@/lib/circuit-breaker";
 import { getCampaignConfig, query, transaction } from "@/lib/db";
+import { blockDisabledExternalAction } from "@/lib/external-actions";
 import { sendDirectMessage } from "@/lib/instagram";
 import { enqueueJob } from "@/lib/job-queue";
 import { reserveDmSlot } from "@/lib/rate-limit";
@@ -59,6 +60,8 @@ runWorker("outreach", async (job) => {
     if (canContinue) await ensureFollowup(lead.id, job.id, campaign.followup_after_hours);
     return { action: "complete" };
   }
+  const disabled = await blockDisabledExternalAction(job, "instagram_dm");
+  if (disabled) return disabled;
   const startHour = Math.max(9, campaign.window_start_hour);
   const endHour = Math.min(20, campaign.window_end_hour);
   const now = new Date();

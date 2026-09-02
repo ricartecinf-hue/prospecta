@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getCampaignConfig, query } from "@/lib/db";
+import { blockDisabledExternalAction } from "@/lib/external-actions";
 import type { Lead } from "@/lib/types";
 import { sendWhatsApp } from "@/lib/whatsapp";
 import { runWorker } from "@/lib/worker";
@@ -21,6 +22,8 @@ runWorker("handoff", async (job) => {
     await query("UPDATE leads SET status = 'handed_off', updated_at = NOW() WHERE id = $1", [lead.id]);
     return { action: "complete" };
   }
+  const disabled = await blockDisabledExternalAction(job, "whatsapp_handoff");
+  if (disabled) return disabled;
   const conversations = await query<{ direction: string; body: string; sent_at: Date }>(
     "SELECT direction, body, sent_at FROM conversations WHERE lead_id = $1 ORDER BY sent_at DESC LIMIT 10",
     [lead.id],

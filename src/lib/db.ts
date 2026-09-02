@@ -40,6 +40,12 @@ export async function transaction<T>(callback: (client: PoolClient) => Promise<T
   }
 }
 
+export async function closeDatabase() {
+  if (!globalForDb.prospectaPool) return;
+  await globalForDb.prospectaPool.end();
+  delete globalForDb.prospectaPool;
+}
+
 export async function audit(event: string, payload: Record<string, unknown> = {}) {
   await query("INSERT INTO audit_log (event, payload) VALUES ($1, $2::jsonb)", [event, JSON.stringify(payload)]);
 }
