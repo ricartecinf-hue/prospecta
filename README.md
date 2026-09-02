@@ -1,6 +1,6 @@
 # Prospecta
 
-O Prospecta é um sistema single-tenant que descobre psicólogos e terapeutas no Instagram, qualifica os perfis com GPT-4o-mini, envia DMs por uma sessão real do Chrome, monitora respostas e encaminha leads interessados ao WhatsApp do Ricardo via Evolution API.
+O Prospecta é um sistema single-tenant que descobre psicólogos e terapeutas no Instagram, qualifica os perfis com Gemini Flash, envia DMs por uma sessão real do Chrome, monitora respostas e encaminha leads interessados ao WhatsApp do Ricardo via Evolution API.
 
 O Prospecta não abre nem autentica um navegador. Todos os acessos ao Instagram reutilizam uma aba já aberta no Chrome por CDP. A fila, o rate limit, o intervalo entre mensagens e o circuit breaker ficam no Postgres, portanto continuam válidos mesmo com mais de uma réplica dos workers.
 
@@ -9,7 +9,7 @@ O Prospecta não abre nem autentica um navegador. Todos os acessos ao Instagram 
 - Node.js 20.9 ou superior (22 LTS recomendado)
 - Postgres/Supabase com o [schema.sql](./schema.sql) aplicado
 - Chrome iniciado com remote debugging e Instagram autenticado manualmente
-- OpenAI API e uma Evolution API acessível
+- Google Gemini API e uma Evolution API acessível
 
 ## Instalação
 
@@ -20,7 +20,9 @@ cp .env.example .env
 
 Preencha todas as variáveis de `.env`. Para um banco Supabase, mantenha `DATABASE_SSL=true` e `DATABASE_SCHEMA=prospecta`. O schema dedicado mantém as tabelas do Prospecta isoladas de outros sistemas hospedados no mesmo projeto Supabase. O arquivo é ignorado pelo Git e nunca deve ser enviado ao repositório.
 
-O orçamento mensal padrão da OpenAI é `US$ 5`. As duas travas de ações externas começam em `false`: `INSTAGRAM_DMS_ENABLED` e `WHATSAPP_HANDOFF_ENABLED`. Enquanto estiverem assim, os respectivos jobs são auditados e reagendados, sem enviar mensagens nem reservar uma vaga no limite diário.
+O orçamento mensal padrão do Gemini é `US$ 5`. As duas travas de ações externas começam em `false`: `INSTAGRAM_DMS_ENABLED` e `WHATSAPP_HANDOFF_ENABLED`. Enquanto estiverem assim, os respectivos jobs são auditados e reagendados, sem enviar mensagens nem reservar uma vaga no limite diário.
+
+O modelo padrão é `gemini-3.1-flash-lite`, o Flash atual de menor custo para tarefas de alto volume. O `gemini-1.5-flash` não deve ser usado porque seu endpoint foi encerrado pelo Google em 29 de setembro de 2025.
 
 Em uma instalação nova, aplique somente `schema.sql`; ele já inclui as estruturas de segurança e cria tudo dentro do schema `prospecta`. Se uma versão anterior do schema inicial já havia sido aplicada, execute apenas:
 
@@ -28,7 +30,7 @@ Em uma instalação nova, aplique somente `schema.sql`; ele já inclui as estrut
 psql "$DATABASE_URL" -f migrations/001_runtime_safety.sql
 ```
 
-Essa migração adiciona o circuit breaker compartilhado, a reserva global do intervalo entre DMs e o controle de consumo da OpenAI, além de corrigir o contador diário para nunca ultrapassar o máximo.
+Essa migração adiciona o circuit breaker compartilhado, a reserva global do intervalo entre DMs e o controle de consumo da IA, além de corrigir o contador diário para nunca ultrapassar o máximo.
 
 ## Chrome e sessão do Instagram
 
@@ -52,7 +54,7 @@ Com o `.env` preenchido, rode primeiro o diagnóstico somente leitura:
 npm run jobs:check
 ```
 
-Ele valida as tabelas e campanha do Supabase, o Chrome CDP com uma sessão autenticada do Instagram, a chave e o saldo operacional da OpenAI e a instância da Evolution API. A checagem da OpenAI usa uma conclusão de apenas um token para detectar conta sem créditos. Nenhum teste envia DM ou WhatsApp.
+Ele valida as tabelas e campanha do Supabase, o Chrome CDP com uma sessão autenticada do Instagram, a chave e o acesso ao modelo Gemini e a instância da Evolution API. A checagem do Gemini faz uma geração mínima para validar chave, cota e modelo. Nenhum teste envia DM ou WhatsApp.
 
 Crie os jobs recorrentes iniciais uma única vez; o comando é idempotente para jobs ativos:
 
@@ -103,14 +105,14 @@ O dashboard fica em `http://localhost:3000`. Em produção, `DASHBOARD_USER` e `
 ## Fluxo e garantias
 
 1. O prospector varre diariamente as hashtags e seguidores dos concorrentes configurados, salva novos perfis e cria jobs `qualify`.
-2. O qualifier usa exatamente o ICP da campanha e `gpt-4o-mini`. Perfis com score abaixo do mínimo viram `disqualified`.
+2. O qualifier usa exatamente o ICP da campanha e o modelo configurado em `GEMINI_MODEL` (por padrão, `gemini-3.1-flash-lite`). Perfis com score abaixo do mínimo viram `disqualified`.
 3. Outreach e follow-up verificam `do_not_contact`, janela de Brasília, teto diário e intervalo aleatório antes do envio.
 4. A reserva de DM usa advisory lock e `increment_rate_limit('dm_total', max)`, impedindo que réplicas ultrapassem 30 DMs totais por dia.
 5. Três erros consecutivos de envio pausam toda a fila por duas horas. Sessão expirada pausa por 24 horas ou até retomada manual.
 6. O inbox roda a cada cinco minutos. “Para”, “não quero”, “sair” e equivalentes marcam opt-out permanente e cancelam outreach/follow-up pendentes.
 7. Respostas com intenção explícita criam um handoff para o WhatsApp, com perfil, score e histórico recente.
 
-Toda ação externa (perfil, DM, inbox, OpenAI e WhatsApp) gera eventos antes/depois em `audit_log`. Jobs usam exclusivamente `claim_job()`, baseado em `FOR UPDATE SKIP LOCKED`; após três falhas vão para `dead`.
+Toda ação externa (perfil, DM, inbox, Gemini e WhatsApp) gera eventos antes/depois em `audit_log`. Jobs usam exclusivamente `claim_job()`, baseado em `FOR UPDATE SKIP LOCKED`; após três falhas vão para `dead`.
 
 ## Deploy no EasyPanel
 
@@ -132,7 +134,7 @@ docker build --target prospecta-jobs -t prospecta-jobs .
 
 Depois do primeiro deploy, abra um console temporário e rode `npm run jobs:seed`. Configure health check HTTP no dashboard (`/dashboard`, aceitando o desafio Basic Auth). Workers não precisam de porta pública.
 
-Se usar o modo híbrido, pause ou remova o serviço `prospecta-jobs` do EasyPanel para não haver dois consumidores da fila. No serviço web, mantenha apenas as variáveis de banco e autenticação do dashboard. As credenciais de OpenAI, Chrome e Evolution pertencem ao `.env` local dos workers.
+Se usar o modo híbrido, pause ou remova o serviço `prospecta-jobs` do EasyPanel para não haver dois consumidores da fila. No serviço web, mantenha apenas as variáveis de banco e autenticação do dashboard. As credenciais do Gemini, Chrome e Evolution pertencem ao `.env` local dos workers.
 
 ## Operação e manutenção
 
@@ -142,7 +144,7 @@ Se usar o modo híbrido, pause ou remova o serviço `prospecta-jobs` do EasyPane
 - `/config`: ICP, fontes, claims, templates e limites.
 - Jobs `dead`: consulte `last_error`, corrija a causa e só então reagende manualmente no banco.
 - Auditoria: `SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 100;`.
-- Consumo OpenAI: `SELECT date_trunc('month', created_at), SUM(estimated_cost_usd) FROM ai_usage GROUP BY 1;`.
+- Consumo Gemini: `SELECT date_trunc('month', created_at), model, SUM(estimated_cost_usd) FROM ai_usage GROUP BY 1, 2;`.
 
 ## Validação
 

@@ -1,14 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { openAIRetryReason } from "./openai";
+import { geminiRetryReason } from "./openai";
 
-test("reconhece falta de créditos da OpenAI como condição reagendável", () => {
+test("reconhece cota esgotada do Gemini como condição reagendável", () => {
   assert.equal(
-    openAIRetryReason({ status: 429, code: "credit_balance_exhausted", type: "insufficient_quota" }),
-    "OpenAI sem créditos disponíveis",
+    geminiRetryReason({ status: 429, statusText: "RESOURCE_EXHAUSTED" }),
+    "cota ou limite temporário do Gemini",
   );
 });
 
-test("não mascara erros permanentes da OpenAI", () => {
-  assert.equal(openAIRetryReason({ status: 401, code: "invalid_api_key" }), null);
+test("reconhece indisponibilidade temporária do Gemini", () => {
+  assert.equal(geminiRetryReason({ status: 503, statusText: "UNAVAILABLE" }), "Gemini temporariamente indisponível");
+});
+
+test("não mascara erros permanentes do Gemini", () => {
+  assert.equal(geminiRetryReason({ status: 400, statusText: "INVALID_ARGUMENT" }), null);
 });

@@ -1,8 +1,9 @@
 import "dotenv/config";
 
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { closeDatabase, query } from "@/lib/db";
 import { env } from "@/lib/env";
+import { geminiRetryReason } from "@/lib/openai";
 
 type Check = { name: string; detail: string };
 
@@ -124,17 +125,23 @@ async function checkChrome(): Promise<Check> {
   return { name: "Chrome/Instagram", detail: `${version.Browser ?? "Chrome"}; aba do Instagram encontrada` };
 }
 
-async function checkOpenAI(): Promise<Check> {
-  const apiKey = env().OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY não configurada");
-  const client = new OpenAI({ apiKey });
-  const model = await client.models.retrieve("gpt-4o-mini");
-  await client.chat.completions.create({
-    model: "gpt-4o-mini",
-    max_completion_tokens: 1,
-    messages: [{ role: "user", content: "OK" }],
-  });
-  return { name: "OpenAI", detail: `${model.id}; orçamento local US$ ${env().OPENAI_MONTHLY_BUDGET_USD}` };
+async function checkGemini(): Promise<Check> {
+  const config = env();
+  if (!config.GOOGLE_API_KEY) throw new Error("GOOGLE_API_KEY não configurada");
+  const model = new GoogleGenerativeAI(config.GOOGLE_API_KEY).getGenerativeModel({ model: config.GEMINI_MODEL });
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const result = await model.generateContent("Responda somente: OK");
+      if (!result.response.text().trim()) throw new Error("Gemini retornou uma resposta vazia");
+      return { name: "Gemini", detail: `${config.GEMINI_MODEL}; orçamento local US$ ${config.GEMINI_MONTHLY_BUDGET_USD}` };
+    } catch (error) {
+      lastError = error;
+      if (!geminiRetryReason(error) || attempt === 3) break;
+      await new Promise((resolve) => setTimeout(resolve, attempt * 1_000));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("falha ao validar o Gemini");
 }
 
 function collectInstanceNames(value: unknown, names = new Set<string>()): Set<string> {
@@ -168,7 +175,7 @@ async function checkEvolution(): Promise<Check> {
 }
 
 async function main() {
-  const checks: Array<() => Promise<Check>> = [checkDatabase, checkChrome, checkOpenAI, checkEvolution];
+  const checks: Array<() => Promise<Check>> = [checkDatabase, checkChrome, checkGemini, checkEvolution];
   let failed = false;
 
   console.info("Prospecta — diagnóstico sem envios\n");

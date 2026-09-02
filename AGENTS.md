@@ -4,7 +4,7 @@
 
 Agente de prospecção autônoma no Instagram para Ricardo Pereira (@oricardo.pereira).
 O agente busca leads no Instagram por hashtag e seguidores de concorrentes, qualifica
-com OpenAI, envia DM pelo Chrome real (sessão logada), conduz a conversa e encaminha
+com Google Gemini, envia DM pelo Chrome real (sessão logada), conduz a conversa e encaminha
 leads quentes pro WhatsApp.
 
 **Fase atual: single tenant (Ricardo). Multi-tenant vem depois — estruture o código
@@ -18,7 +18,7 @@ com `tenant_id` nas interfaces TypeScript mas sem implementar isolamento ainda.*
 - **Framework web:** Next.js (App Router) — mesmo padrão do Zap Love
 - **Banco:** Postgres via Supabase (já tem conta) — schema em `schema.sql`
 - **Browser automation:** Playwright (headful, conecta no Chrome existente via CDP)
-- **IA:** OpenAI (GPT-4o-mini para qualificação — barato e rápido)
+- **IA:** Google Gemini Flash para qualificação
 - **Fila de jobs:** Postgres nativo com `FOR UPDATE SKIP LOCKED` — NÃO usar Bull, BullMQ, Redis ou qualquer lib externa de fila
 - **Deploy:** EasyPanel (já tem servidor rodando outros sistemas)
 - **Cobrança (fase 2):** Asaas — ignorar por enquanto
@@ -36,7 +36,7 @@ src/
   
   workers/                # processos Node.js separados
     prospector.ts         # busca perfis por hashtag/followers
-    qualifier.ts          # score via OpenAI
+    qualifier.ts          # score via Gemini
     outreach.ts           # envia DM via Chrome
     followup.ts           # re-aborda leads que não responderam
     handoff.ts            # encaminha lead quente pro WhatsApp
@@ -45,7 +45,7 @@ src/
     db.ts                 # cliente Postgres (pg ou postgres.js)
     chrome.ts             # conecta no Chrome via CDP (porta 9222)
     instagram.ts          # ações no Instagram via Playwright
-    openai.ts             # qualificação de leads
+    openai.ts             # qualificação de leads via Gemini (nome mantido por compatibilidade)
     rate-limit.ts         # incrementa contador, retorna boolean
     job-queue.ts          # claim_job(), complete_job(), fail_job()
     whatsapp.ts           # Evolution API (já rodando no EasyPanel)
@@ -93,7 +93,7 @@ src/
 
 2. qualifier.ts
    → pega job kind='qualify'
-   → manda bio + posts pro OpenAI com prompt do nicho
+   → manda bio + posts pro Gemini com prompt do nicho
    → salva score e score_reason no lead
    → se score >= min_score_to_dm → cria job kind='outreach'
    → senão → status = 'disqualified'
@@ -129,9 +129,10 @@ src/
 # Postgres
 DATABASE_URL=postgresql://...
 
-# OpenAI
-OPENAI_API_KEY=sk-...
-OPENAI_MONTHLY_BUDGET_USD=5
+# Google Gemini
+GOOGLE_API_KEY=...
+GEMINI_MODEL=gemini-3.1-flash-lite
+GEMINI_MONTHLY_BUDGET_USD=5
 
 # Chrome CDP
 CHROME_CDP_URL=http://localhost:9222
@@ -151,7 +152,7 @@ TZ=America/Sao_Paulo
 
 ---
 
-## Prompt de qualificação (OpenAI)
+## Prompt de qualificação (Gemini)
 
 Usar este prompt no qualifier.ts:
 
@@ -213,7 +214,7 @@ UI: shadcn/ui + Tailwind — mesmo padrão do Zap Love.
 1. `schema.sql` aplicado no Supabase (já feito)
 2. `lib/db.ts` + `lib/job-queue.ts` + `lib/rate-limit.ts`
 3. `lib/chrome.ts` + `lib/instagram.ts` (conectar CDP, navegar, ler bio)
-4. `workers/qualifier.ts` (OpenAI score)
+4. `workers/qualifier.ts` (Gemini score)
 5. `workers/prospector.ts` (busca hashtags)
 6. `workers/outreach.ts` (envio de DM)
 7. Polling de respostas + `workers/handoff.ts`

@@ -32,7 +32,7 @@ CREATE TABLE prospecta.leads (
   
   -- Qualificação
   niche           TEXT NOT NULL,           -- MVP: 'psicologo'
-  score           INTEGER DEFAULT 0,       -- 0–100 via OpenAI
+  score           INTEGER DEFAULT 0,       -- 0–100 via Gemini
   score_reason    TEXT,                    -- explicação do score
   qualified_at    TIMESTAMPTZ,
   
@@ -83,7 +83,7 @@ CREATE TABLE prospecta.jobs (
   
   kind         TEXT NOT NULL,
   -- 'prospect'   → buscar novos perfis
-  -- 'qualify'    → score via OpenAI
+  -- 'qualify'    → score via Gemini
   -- 'outreach'   → enviar DM via Chrome
   -- 'followup'   → follow-up agendado
   -- 'inbox_poll' → buscar respostas no Direct a cada 5 minutos

@@ -72,7 +72,7 @@ Construir um agente Node.js + TypeScript que:
 1. Busca perfis de psicólogos e terapeutas no Instagram via hashtags e seguidores de concorrentes
    usando Playwright conectado via CDP ao Chrome local (porta 9222)
 
-2. Qualifica cada perfil com OpenAI (GPT-4o-mini), gerando score 0–100 com base no ICP
+2. Qualifica cada perfil com Google Gemini Flash, gerando score 0–100 com base no ICP
 
 3. Envia a DM_1 para leads com score ≥ 65, respeitando todos os limites operacionais
 
@@ -108,7 +108,7 @@ Construir um agente Node.js + TypeScript que:
 - Next.js App Router (dashboard)
 - Playwright (CDP, porta 9222)
 - Postgres — fila nativa com FOR UPDATE SKIP LOCKED (sem Redis/Bull)
-- OpenAI API (GPT-4o-mini)
+- Google Gemini API (Gemini Flash)
 - Evolution API (WhatsApp — já rodando no EasyPanel)
 - Supabase (banco já existente)
 - shadcn/ui + Tailwind (dashboard)
