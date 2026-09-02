@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import { audit, getCampaignConfig, query } from "@/lib/db";
+import { audit, closeDatabase, getCampaignConfig, query } from "@/lib/db";
 import { enqueueJob } from "@/lib/job-queue";
 
 async function enqueueProspect(sourceKind: "hashtag" | "followers", value: string, niche: string) {
@@ -25,7 +25,9 @@ async function main() {
   console.info("Jobs iniciais criados.");
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(closeDatabase);

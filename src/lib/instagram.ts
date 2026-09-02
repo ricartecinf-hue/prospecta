@@ -35,11 +35,12 @@ async function profileFromCurrentPage(page: Page, username: string): Promise<Ins
   const title = await page.locator('meta[property="og:title"]').getAttribute("content").catch(() => null);
   const headerText = await text(page.locator("header"));
   const counts = meta?.match(/([\d.,]+[KkMm]?) Followers, ([\d.,]+[KkMm]?) Following, ([\d.,]+[KkMm]?) Posts/i);
+  const metaPtCounts = meta?.match(/([\d.,]+\s*(?:mil|mi)?)\s+seguidores,\s+seguindo\s+([\d.,]+\s*(?:mil|mi)?),\s+([\d.,]+\s*(?:mil|mi)?)\s+posts/i);
   const ptCounts = headerText.match(/([\d.,]+\s*(?:mil|mi)?)\s+seguidores.*?([\d.,]+\s*(?:mil|mi)?)\s+seguindo/i);
-  const postCount = headerText.match(/([\d.,]+\s*(?:mil|mi)?)\s+publicaç/i);
+  const postCount = headerText.match(/([\d.,]+\s*(?:mil|mi)?)\s+(?:publicaç|posts?)/i);
   const fullName = (title?.split("(")[0] ?? (await text(page.locator("header h1, header h2")))).trim();
   const bioCandidates = await page.locator("header section div[dir='auto'], header span[dir='auto']").allTextContents().catch(() => []);
-  const recentPosts = await page.locator('article a[href*="/p/"] img').evaluateAll((images) =>
+  const recentPosts = await page.locator('main a[href*="/p/"] img, main a[href*="/reel/"] img').evaluateAll((images) =>
     images.slice(0, 6).map((image) => image.getAttribute("alt") ?? "").filter(Boolean),
   ).catch(() => [] as string[]);
 
@@ -47,9 +48,9 @@ async function profileFromCurrentPage(page: Page, username: string): Promise<Ins
     username: normalizeUsername(username),
     fullName,
     bio: bioCandidates.filter((item) => item.trim() && !item.includes("seguidores")).slice(-2).join(" ").trim(),
-    followersCount: parseCompactNumber(counts?.[1] ?? ptCounts?.[1] ?? null),
-    followingCount: parseCompactNumber(counts?.[2] ?? ptCounts?.[2] ?? null),
-    postsCount: parseCompactNumber(counts?.[3] ?? postCount?.[1] ?? null),
+    followersCount: parseCompactNumber(counts?.[1] ?? metaPtCounts?.[1] ?? ptCounts?.[1] ?? null),
+    followingCount: parseCompactNumber(counts?.[2] ?? metaPtCounts?.[2] ?? ptCounts?.[2] ?? null),
+    postsCount: parseCompactNumber(counts?.[3] ?? metaPtCounts?.[3] ?? postCount?.[1] ?? null),
     profilePicUrl: await page.locator("header img").first().getAttribute("src").catch(() => null),
     recentPosts,
   };
@@ -78,7 +79,13 @@ async function usernamesFromPostLinks(page: Page, links: string[], limit: number
   for (const link of links) {
     if (usernames.size >= limit) break;
     await gotoInstagram(page, new URL(link, IG_ORIGIN).pathname);
-    const href = await page.locator('article header a[href^="/"]').first().getAttribute("href").catch(() => null);
+    const href = await page.locator('main a[href^="/"]').evaluateAll((anchors) => {
+      for (const anchor of anchors) {
+        const candidate = anchor.getAttribute("href") ?? "";
+        if (/^\/[A-Za-z0-9._]+\/$/.test(candidate)) return candidate;
+      }
+      return null;
+    }).catch(() => null);
     const username = href?.split("/").filter(Boolean)[0];
     if (username && !["explore", "accounts", "direct"].includes(username)) usernames.add(normalizeUsername(username));
   }
@@ -109,10 +116,11 @@ async function discoverFromFollowersUnlocked(username: string, limit = 20) {
   await audit("instagram.followers_fetch.before", { username: clean, limit });
   try {
     await gotoInstagram(page, `/${clean}/`);
-    const link = page.locator('a[href$="/followers/"]').first();
+    const link = page.getByRole("link", { name: /seguidores|followers/i }).first();
     await link.click();
     const dialog = page.locator('div[role="dialog"]').last();
     await dialog.waitFor({ state: "visible" });
+    await dialog.locator('a[href^="/"]').first().waitFor({ state: "visible" });
     const usernames = new Set<string>();
     for (let attempt = 0; attempt < 20 && usernames.size < limit; attempt += 1) {
       const hrefs = await dialog.locator('a[href^="/"]').evaluateAll((anchors) =>
@@ -123,7 +131,11 @@ async function discoverFromFollowersUnlocked(username: string, limit = 20) {
         if (candidate && candidate !== clean) usernames.add(normalizeUsername(candidate));
         if (usernames.size >= limit) break;
       }
-      await dialog.evaluate((element) => element.scrollTo(0, element.scrollHeight));
+      await dialog.evaluate((element) => {
+        const candidates = [element, ...element.querySelectorAll("div")];
+        const scrollable = candidates.find((candidate) => candidate.scrollHeight > candidate.clientHeight + 20);
+        scrollable?.scrollTo(0, scrollable.scrollHeight);
+      });
       await page.waitForTimeout(800);
     }
     const found = [...usernames].slice(0, limit);

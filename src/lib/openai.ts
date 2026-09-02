@@ -17,6 +17,18 @@ function client() {
   return new OpenAI({ apiKey });
 }
 
+export function openAIRetryReason(error: unknown) {
+  if (!error || typeof error !== "object") return null;
+  const candidate = error as { status?: number; code?: string; type?: string; error?: { code?: string; type?: string } };
+  if (candidate.status !== 429) return null;
+  const code = candidate.code ?? candidate.error?.code;
+  const type = candidate.type ?? candidate.error?.type;
+  if (code === "credit_balance_exhausted" || type === "insufficient_quota") {
+    return "OpenAI sem créditos disponíveis";
+  }
+  return "limite temporário da OpenAI";
+}
+
 async function assertMonthlyBudget() {
   const result = await query<{ total: string }>(
     `SELECT COALESCE(SUM(estimated_cost_usd), 0)::text AS total FROM ai_usage

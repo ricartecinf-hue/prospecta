@@ -6,10 +6,61 @@ import { env } from "@/lib/env";
 
 type Check = { name: string; detail: string };
 
-async function fetchChecked(url: string, init?: RequestInit) {
-  const response = await fetch(url, { ...init, signal: AbortSignal.timeout(10_000) });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return response;
+async function fetchChecked(url: string, init?: RequestInit, attempts = 3) {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch(url, { ...init, signal: AbortSignal.timeout(10_000) });
+      if (response.ok) return response;
+      lastError = new Error(`HTTP ${response.status}`);
+      if (response.status < 500) break;
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, attempt * 750));
+  }
+  throw lastError instanceof Error ? lastError : new Error("falha de conexão");
+}
+
+async function inspectInstagramTarget(webSocketDebuggerUrl: string) {
+  return new Promise<{ url: string; hasLoginForm: boolean }>((resolve, reject) => {
+    const socket = new WebSocket(webSocketDebuggerUrl);
+    const timer = setTimeout(() => {
+      socket.close();
+      reject(new Error("timeout ao validar a sessão do Instagram"));
+    }, 10_000);
+
+    socket.addEventListener("open", () => {
+      socket.send(JSON.stringify({
+        id: 1,
+        method: "Runtime.evaluate",
+        params: {
+          expression: `({
+            url: location.href,
+            hasLoginForm: Boolean(document.querySelector('input[name="username"], input[name="password"]'))
+          })`,
+          returnByValue: true,
+        },
+      }));
+    });
+    socket.addEventListener("message", (event) => {
+      const response = JSON.parse(String(event.data)) as {
+        id?: number;
+        result?: { result?: { value?: { url: string; hasLoginForm: boolean } } };
+        error?: { message?: string };
+      };
+      if (response.id !== 1) return;
+      clearTimeout(timer);
+      socket.close();
+      const value = response.result?.result?.value;
+      if (!value) reject(new Error(response.error?.message || "CDP não retornou o estado da aba"));
+      else resolve(value);
+    });
+    socket.addEventListener("error", () => {
+      clearTimeout(timer);
+      reject(new Error("falha ao inspecionar a aba do Instagram via CDP"));
+    });
+  });
 }
 
 async function checkDatabase(): Promise<Check> {
@@ -60,16 +111,29 @@ async function checkChrome(): Promise<Check> {
   };
   if (!version.webSocketDebuggerUrl) throw new Error("CDP respondeu sem webSocketDebuggerUrl");
 
-  const targets = await fetchChecked(`${base}/json/list`).then((response) => response.json()) as Array<{ url?: string }>;
+  const targets = await fetchChecked(`${base}/json/list`).then((response) => response.json()) as Array<{
+    url?: string;
+    webSocketDebuggerUrl?: string;
+  }>;
   const instagramTab = targets.find((target) => target.url?.includes("instagram.com"));
   if (!instagramTab) throw new Error("abra e autentique uma aba do Instagram no Chrome dedicado");
+  if (!instagramTab.webSocketDebuggerUrl) throw new Error("a aba do Instagram não expôs um endpoint CDP");
+  const session = await inspectInstagramTarget(instagramTab.webSocketDebuggerUrl);
+  const loginRequired = session.hasLoginForm || /instagram\.com\/(accounts\/login|challenge)/i.test(session.url);
+  if (loginRequired) throw new Error("faça login manualmente no Instagram no Chrome dedicado");
   return { name: "Chrome/Instagram", detail: `${version.Browser ?? "Chrome"}; aba do Instagram encontrada` };
 }
 
 async function checkOpenAI(): Promise<Check> {
   const apiKey = env().OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY não configurada");
-  const model = await new OpenAI({ apiKey }).models.retrieve("gpt-4o-mini");
+  const client = new OpenAI({ apiKey });
+  const model = await client.models.retrieve("gpt-4o-mini");
+  await client.chat.completions.create({
+    model: "gpt-4o-mini",
+    max_completion_tokens: 1,
+    messages: [{ role: "user", content: "OK" }],
+  });
   return { name: "OpenAI", detail: `${model.id}; orçamento local US$ ${env().OPENAI_MONTHLY_BUDGET_USD}` };
 }
 
@@ -121,7 +185,7 @@ async function main() {
   const config = env();
   console.info(`\nDMs Instagram: ${config.INSTAGRAM_DMS_ENABLED === "true" ? "ATIVADAS" : "BLOQUEADAS"}`);
   console.info(`Handoffs WhatsApp: ${config.WHATSAPP_HANDOFF_ENABLED === "true" ? "ATIVADOS" : "BLOQUEADOS"}`);
-  if (failed) process.exitCode = 1;
+  if (failed) throw new Error("uma ou mais conexões falharam");
 }
 
 main()

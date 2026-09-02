@@ -1,5 +1,7 @@
 import "dotenv/config";
 
+import { recoverStaleJobs } from "@/lib/job-queue";
+
 const workers = [
   "prospector",
   "qualifier",
@@ -10,6 +12,8 @@ const workers = [
 ] as const;
 
 async function start() {
+  const recovered = await recoverStaleJobs();
+  if (recovered) console.info(`[Prospecta] ${recovered} job(s) interrompido(s) recuperado(s)`);
   console.info(`[Prospecta] iniciando ${workers.length} workers no processo prospecta-jobs`);
   await Promise.all([
     import("./prospector"),

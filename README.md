@@ -52,7 +52,7 @@ Com o `.env` preenchido, rode primeiro o diagnóstico somente leitura:
 npm run jobs:check
 ```
 
-Ele valida as tabelas e campanha do Supabase, o Chrome CDP com uma aba do Instagram, a autorização para acessar `gpt-4o-mini` e a instância da Evolution API. A checagem da OpenAI consulta o modelo, sem gerar texto e sem consumir tokens. Nenhum teste envia DM ou WhatsApp.
+Ele valida as tabelas e campanha do Supabase, o Chrome CDP com uma sessão autenticada do Instagram, a chave e o saldo operacional da OpenAI e a instância da Evolution API. A checagem da OpenAI usa uma conclusão de apenas um token para detectar conta sem créditos. Nenhum teste envia DM ou WhatsApp.
 
 Crie os jobs recorrentes iniciais uma única vez; o comando é idempotente para jobs ativos:
 

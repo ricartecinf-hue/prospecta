@@ -8,6 +8,23 @@ export async function claimJob<T>(kind: JobKind): Promise<Job<T> | null> {
   return result.rows[0] ?? null;
 }
 
+export async function recoverStaleJobs(maxAgeMinutes = 15) {
+  const result = await query<{ id: string; kind: JobKind }>(
+    `UPDATE jobs SET status = 'pending', run_after = NOW(),
+       last_error = 'recuperado após interrupção do worker', updated_at = NOW()
+     WHERE status = 'running' AND updated_at < NOW() - ($1 * INTERVAL '1 minute')
+     RETURNING id, kind`,
+    [maxAgeMinutes],
+  );
+  if (result.rowCount) {
+    await audit("jobs.stale_recovered", {
+      count: result.rowCount,
+      jobIds: result.rows.map((job) => job.id),
+    });
+  }
+  return result.rowCount ?? 0;
+}
+
 export async function enqueueJob(
   kind: JobKind,
   payload: Record<string, unknown>,

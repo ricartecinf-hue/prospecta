@@ -20,11 +20,12 @@ if [[ ! -x "${CHROME_BIN}" ]]; then
 fi
 
 /bin/mkdir -p "${PROFILE_DIR}" "${LOG_DIR}"
-/usr/bin/nohup "${CHROME_BIN}" \
+/usr/bin/open -na "Google Chrome" --args \
   --remote-debugging-address=127.0.0.1 \
   --remote-debugging-port="${CDP_PORT}" \
   --user-data-dir="${PROFILE_DIR}" \
-  >>"${LOG_DIR}/chrome.log" 2>&1 &
+  --new-window "https://www.instagram.com/" \
+  >>"${LOG_DIR}/chrome.log" 2>&1
 
 for attempt in {1..30}; do
   if /usr/bin/curl --silent --fail --max-time 2 "${CDP_URL}/json/version" >/dev/null 2>&1; then

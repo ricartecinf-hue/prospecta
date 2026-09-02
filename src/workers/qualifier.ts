@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { getCampaignConfig, query } from "@/lib/db";
+import { audit, getCampaignConfig, query } from "@/lib/db";
 import { readProfile } from "@/lib/instagram";
 import { enqueueJob } from "@/lib/job-queue";
-import { qualifyProfile } from "@/lib/openai";
+import { openAIRetryReason, qualifyProfile } from "@/lib/openai";
 import type { Lead } from "@/lib/types";
 import { runWorker } from "@/lib/worker";
 
@@ -16,7 +16,16 @@ runWorker("qualify", async (job) => {
 
   const campaign = await getCampaignConfig(lead.niche);
   const profile = await readProfile(lead.ig_username);
-  const qualification = await qualifyProfile(profile, campaign);
+  let qualification;
+  try {
+    qualification = await qualifyProfile(profile, campaign);
+  } catch (error) {
+    const retryReason = openAIRetryReason(error);
+    if (!retryReason) throw error;
+    const runAfter = new Date(Date.now() + (retryReason.includes("créditos") ? 6 * 60 : 5) * 60 * 1000);
+    await audit("openai.qualification.deferred", { jobId: job.id, leadId: lead.id, reason: retryReason, runAfter });
+    return { action: "reschedule", runAfter, reason: retryReason };
+  }
   const qualified = qualification.is_icp && qualification.score >= campaign.min_score_to_dm;
 
   await query(
