@@ -139,7 +139,11 @@ function scorePsicologo(profile: InstagramProfile, signals: QualificationSignals
 // o que importa é profissão + localização + sinal de consultório
 // ou clínica própria (perfil de médico empreendedor).
 // ============================================================
-const medicoLocationTerms = /\b(florianopolis|floripa|sao jose|palhoca|biguacu|joinville|blumenau|santa catarina|\bsc\b)\b/i;
+// Só as 6 cidades do ICP contam — nada de "SC"/"Santa Catarina" genérico, que na
+// prática combinava com siglas de entidades internacionais (ex.: "ESC"/"FESC") e
+// gerava falso positivo. "São José" exige not ser São José dos Campos/do Rio Preto
+// etc. (outras cidades brasileiras homônimas, fora do ICP).
+const medicoLocationTerms = /\b(florianopolis|floripa|sao jose(?!\s+(?:dos|do|da)\b)|palhoca|biguacu|joinville|blumenau)\b/i;
 const medicoPracticeOwnershipTerms = /\b(clinica propria|consultorio proprio|minha clinica|meu consultorio|fundador|fundadora|proprietari[oa]|socio fundador|nossa clinica|nossa equipe|nossa unidade|unidades|expansao|nova unidade|gestao da clinica|gerencio|administro)\b/i;
 const medicoStudentOrResidentTerms = /\b(estudante de medicina|academic[oa] de medicina|interno de medicina|internato|residente|residencia medica|\br[1234]\b)\b/i;
 
@@ -159,7 +163,12 @@ function scoreMedico(profile: InstagramProfile, signals: QualificationSignals): 
   const allText = `${identityText} ${recentText} ${evidenceText}`;
 
   const professionConfirmed = medicoProfession.test(identityText) || signals.profession_confirmed;
-  const locationConfirmed = medicoLocationTerms.test(allText) || signals.location_confirmed;
+  // Localização precisa ser uma menção EXPLÍCITA na bio ou nos posts reais do perfil —
+  // por isso batemos o regex só em identityText+recentText (texto do próprio perfil),
+  // nunca em evidenceText (paráfrase da IA) nem no sinal booleano da IA: já vimos o
+  // Gemini marcar location_confirmed=true contradizendo a própria evidência escrita.
+  // Ausência de menção = 0 pontos, sem inferência por área de atuação, seguidores etc.
+  const locationConfirmed = medicoLocationTerms.test(`${identityText} ${recentText}`);
   const practiceOwnership = medicoPracticeOwnershipTerms.test(allText) || signals.practice_ownership;
   const professionalActive = signals.professional_active;
   const studentOrResident = medicoStudentOrResidentTerms.test(allText) || signals.student_or_resident;
@@ -186,10 +195,12 @@ function scoreMedico(profile: InstagramProfile, signals: QualificationSignals): 
   const cap = 30;
   const score = breakdown.automatic_block ? Math.min(cap, breakdown.subtotal) : breakdown.subtotal;
 
+  // Localização não confirmada bloqueia is_icp sempre, mesmo com score alto —
+  // não é opcional: sem cidade-alvo confirmada, o lead não é do evento.
   return {
     score,
     reason: explain(breakdown, cap, signals.evidence),
-    is_icp: professionConfirmed && !breakdown.automatic_block && score >= 65,
+    is_icp: professionConfirmed && locationConfirmed && !breakdown.automatic_block && score >= 65,
     breakdown,
   };
 }

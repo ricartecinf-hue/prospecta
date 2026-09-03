@@ -135,6 +135,50 @@ test("nicho medico: aprova médico empreendedor de Florianópolis com todos os c
   });
 });
 
+test("nicho medico: sinal da IA sozinho não confirma localização sem menção explícita no perfil", () => {
+  const result = scoreQualification(
+    profile({
+      fullName: "Carlos — Médico",
+      bio: "Médico clínico geral. CRM 00000. Fundador da minha clínica.",
+      followersCount: 100_000,
+      recentPosts: ["Rotina do consultório e da nossa equipe"],
+    }),
+    // A IA marca location_confirmed=true, mas nem bio nem posts citam uma das 6 cidades.
+    signals({ location_confirmed: true, practice_ownership: true }),
+    "medico",
+  );
+  assert.equal(result.breakdown.location_confirmed, 0);
+  assert.equal(result.is_icp, false, "sem localização confirmada, is_icp deve ser false mesmo com score alto");
+  assert.ok(result.score >= 65, "score alto o suficiente se não fosse pela localização — prova que só a localização barrou o is_icp");
+});
+
+test("nicho medico: 'Santa Catarina'/'SC' genérico não conta como cidade confirmada", () => {
+  const result = scoreQualification(
+    profile({ bio: "Médico. Atendo pacientes em Santa Catarina, SC.", recentPosts: [] }),
+    signals(),
+    "medico",
+  );
+  assert.equal(result.breakdown.location_confirmed, 0);
+});
+
+test("nicho medico: 'São José dos Campos' (outra cidade) não conta como São José/SC", () => {
+  const result = scoreQualification(
+    profile({ bio: "Médico em São José dos Campos.", recentPosts: [] }),
+    signals(),
+    "medico",
+  );
+  assert.equal(result.breakdown.location_confirmed, 0);
+});
+
+test("nicho medico: 'São José' (SC, sem sufixo de outra cidade) conta normalmente", () => {
+  const result = scoreQualification(
+    profile({ bio: "Médico, atendo em São José, SC.", recentPosts: [] }),
+    signals(),
+    "medico",
+  );
+  assert.equal(result.breakdown.location_confirmed, 25);
+});
+
 test("nicho medico: distribui pontos de seguidores até o teto de 5", () => {
   const withFollowers = (followersCount: number) => scoreQualification(
     profile({ followersCount }),
