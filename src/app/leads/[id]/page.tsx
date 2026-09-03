@@ -32,6 +32,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             <Field label="Nome completo">{lead.full_name || "—"}</Field>
             <Field label="ID Instagram">{lead.ig_user_id || "—"}</Field>
             <Field label="Nicho">{lead.niche}</Field>
+            {/* "Origem" só aparece aqui — foi removida da tabela principal de /leads */}
             <Field label="Origem">{lead.source || "—"}</Field>
             <Field label="Seguidores">{lead.followers_count?.toLocaleString("pt-BR") ?? "—"}</Field>
             <Field label="Seguindo">{lead.following_count?.toLocaleString("pt-BR") ?? "—"}</Field>

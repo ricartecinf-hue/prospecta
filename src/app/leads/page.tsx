@@ -8,7 +8,25 @@ import type { Lead } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 function ContactLink({ href, label, children }: { href: string; label: string; children: ReactNode }) {
-  return <a href={href} aria-label={label} title={label} target="_blank" rel="noreferrer" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-base hover:border-blue-300 hover:bg-blue-50">{children}</a>;
+  return (
+    <a
+      href={href}
+      aria-label={label}
+      title={label}
+      target="_blank"
+      rel="noreferrer"
+      className="relative z-10 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-base hover:border-blue-300 hover:bg-blue-50"
+    >
+      {children}
+    </a>
+  );
+}
+
+function scoreBadgeClass(score: number) {
+  if (score >= 90) return "bg-green-100 text-green-800";
+  if (score >= 70) return "bg-blue-100 text-blue-800";
+  if (score >= 50) return "bg-yellow-100 text-yellow-800";
+  return "bg-slate-100 text-slate-500";
 }
 
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ status?: string; niche?: string }> }) {
@@ -37,7 +55,52 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
         <select name="niche" defaultValue={niche} className="rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="">Todos os nichos</option>{nicheOptions.map((value) => <option key={value} value={value}>{value}</option>)}</select>
         <button className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Filtrar</button>
       </form>
-      <Card className="overflow-hidden"><CardContent className="overflow-x-auto p-0"><table className="w-full min-w-[980px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Lead</th><th className="px-5 py-3">Contatos</th><th className="px-5 py-3">Email</th><th className="px-5 py-3">Nicho</th><th className="px-5 py-3">Origem</th><th className="px-5 py-3">Score</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Descoberto</th></tr></thead><tbody>{result.rows.map((lead) => <tr key={lead.id} className="border-t border-slate-100 hover:bg-slate-50"><td className="px-5 py-4"><Link href={`/leads/${lead.id}`} className="font-semibold text-blue-700 hover:underline">{lead.full_name || `@${lead.ig_username}`}</Link><span className="block text-xs text-slate-500">@{lead.ig_username}</span></td><td className="px-5 py-4"><div className="flex gap-2"><ContactLink href={lead.ig_profile_url || `https://instagram.com/${lead.ig_username}`} label={`Abrir @${lead.ig_username} no Instagram`}>◎</ContactLink>{lead.whatsapp && <ContactLink href={`https://wa.me/${lead.whatsapp}`} label={`Abrir WhatsApp de @${lead.ig_username}`}>◉</ContactLink>}</div></td><td className="px-5 py-4">{lead.email ? <a href={`mailto:${lead.email}`} className="text-blue-700 hover:underline">{lead.email}</a> : <span className="text-slate-400">—</span>}</td><td className="px-5 py-4">{lead.niche}</td><td className="px-5 py-4 text-slate-500">{lead.source}</td><td className="px-5 py-4 text-lg font-bold">{lead.score}</td><td className="px-5 py-4"><Badge variant={lead.status}>{lead.status}</Badge></td><td className="px-5 py-4 text-slate-500">{lead.discovered_at.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}</td></tr>)}</tbody></table>{result.rows.length === 0 && <p className="p-8 text-center text-slate-500">Nenhum lead encontrado.</p>}</CardContent></Card>
+      <Card className="overflow-hidden">
+        <CardContent className="overflow-x-auto p-0">
+          <table className="w-full min-w-[900px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-5 py-3">Lead</th>
+                <th className="px-5 py-3">Contatos</th>
+                <th className="px-5 py-3">Email</th>
+                <th className="px-5 py-3">Nicho</th>
+                <th className="px-5 py-3">Score</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3">Descoberto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {result.rows.map((lead) => (
+                <tr key={lead.id} className="relative border-b border-slate-200 even:bg-slate-50/60 hover:bg-blue-50/60">
+                  <td className="px-5 py-5">
+                    {/* Cobre a linha inteira e navega para o detalhe; os links de contato abaixo
+                        ficam com z-10 para continuar clicáveis por cima dela. */}
+                    <Link href={`/leads/${lead.id}`} aria-hidden="true" tabIndex={-1} className="absolute inset-0" />
+                    <span className="relative block font-semibold text-slate-900">{lead.full_name || `@${lead.ig_username}`}</span>
+                    <span className="relative block text-xs text-slate-500">@{lead.ig_username}</span>
+                  </td>
+                  <td className="px-5 py-5">
+                    <div className="flex gap-2">
+                      <ContactLink href={lead.ig_profile_url || `https://instagram.com/${lead.ig_username}`} label={`Abrir @${lead.ig_username} no Instagram`}>◎</ContactLink>
+                      {lead.whatsapp && <ContactLink href={`https://wa.me/${lead.whatsapp}`} label={`Abrir WhatsApp de @${lead.ig_username}`}>◉</ContactLink>}
+                    </div>
+                  </td>
+                  <td className="px-5 py-5">
+                    {lead.email ? <a href={`mailto:${lead.email}`} className="relative z-10 text-blue-700 hover:underline">{lead.email}</a> : <span className="text-slate-400">—</span>}
+                  </td>
+                  <td className="px-5 py-5">{lead.niche}</td>
+                  <td className="px-5 py-5">
+                    <span className={`inline-flex min-w-[2.5rem] justify-center rounded-full px-2.5 py-1 text-sm font-bold ${scoreBadgeClass(lead.score)}`}>{lead.score}</span>
+                  </td>
+                  <td className="px-5 py-5"><Badge variant={lead.status}>{lead.status}</Badge></td>
+                  <td className="px-5 py-5 text-slate-500">{lead.discovered_at.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {result.rows.length === 0 && <p className="p-8 text-center text-slate-500">Nenhum lead encontrado.</p>}
+        </CardContent>
+      </Card>
     </div>
   );
 }
