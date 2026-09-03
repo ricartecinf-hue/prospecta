@@ -24,6 +24,9 @@ const signals = (overrides: Partial<QualificationSignals> = {}): QualificationSi
   professional_active: true,
   service_mentioned: true,
   personal_profile: false,
+  location_confirmed: false,
+  practice_ownership: false,
+  student_or_resident: false,
   evidence: "Perfil profissional com conteúdo recente.",
   ...overrides,
 });
@@ -107,28 +110,105 @@ test("não aprova perfil sem profissão-alvo mesmo que outros critérios somem 6
   assert.equal(result.is_icp, false);
 });
 
-test("nicho medico: aprova médico com conteúdo clínico", () => {
+test("nicho medico: aprova médico empreendedor de Florianópolis com todos os critérios", () => {
   const result = scoreQualification(
     profile({
       username: "dr.medico",
       fullName: "Carlos — Médico",
-      bio: "Médico clínico geral. CRM 00000. Atendimento online e presencial.",
-      recentPosts: ["Prevenção e diagnóstico precoce", "Rotina do consultório"],
+      bio: "Médico clínico geral. CRM SC 00000. Fundador da minha clínica em Florianópolis.",
+      followersCount: 100_000,
+      recentPosts: ["Prevenção e diagnóstico precoce", "Rotina do consultório e da nossa equipe"],
     }),
-    signals(),
+    signals({ location_confirmed: true, practice_ownership: true }),
     "medico",
   );
   assert.equal(result.score, 100);
   assert.equal(result.is_icp, true);
+  assert.deepEqual(result.breakdown, {
+    profession_confirmed: 35,
+    location_confirmed: 25,
+    practice_ownership: 20,
+    professional_active: 15,
+    followers_in_range: 5,
+    subtotal: 100,
+    automatic_block: null,
+  });
 });
 
-test("nicho medico: bloqueia psicóloga fora do ICP de médicos", () => {
+test("nicho medico: distribui pontos de seguidores até o teto de 5", () => {
+  const withFollowers = (followersCount: number) => scoreQualification(
+    profile({ followersCount }),
+    signals(),
+    "medico",
+  ).breakdown.followers_in_range;
+  assert.deepEqual(
+    [999, 1_000, 9_999, 10_000, 29_999, 30_000, 59_999, 60_000, 99_999, 100_000].map(withFollowers),
+    [0, 1, 1, 2, 2, 3, 3, 4, 4, 5],
+  );
+});
+
+test("nicho medico: bloqueia residente sem consultório próprio a 30 pontos", () => {
+  const result = scoreQualification(
+    profile({
+      fullName: "Carlos",
+      bio: "Residente de clínica médica no hospital universitário.",
+      recentPosts: [],
+    }),
+    signals({ student_or_resident: true, location_confirmed: true }),
+    "medico",
+  );
+  assert.equal(result.score, 30);
+  assert.equal(result.is_icp, false);
+  assert.match(result.breakdown.automatic_block ?? "", /residente sem consultório/);
+});
+
+test("nicho medico: residente com clínica própria não é bloqueado", () => {
+  const result = scoreQualification(
+    profile({
+      fullName: "Carlos",
+      bio: "Residente de clínica médica; fundador da minha clínica.",
+      recentPosts: [],
+    }),
+    signals({ student_or_resident: true, practice_ownership: true, location_confirmed: true }),
+    "medico",
+  );
+  assert.equal(result.breakdown.automatic_block, null);
+});
+
+test("nicho medico: bloqueia perfil pessoal sem vínculo profissional (teto de 30)", () => {
+  const result = scoreQualification(
+    profile({ fullName: "João Silva", bio: "Minha vida e minha família", recentPosts: [] }),
+    signals({ profession_confirmed: false, personal_profile: true }),
+    "medico",
+  );
+  assert.ok(result.score <= 30);
+  assert.equal(result.is_icp, false);
+  assert.match(result.breakdown.automatic_block ?? "", /perfil pessoal/);
+});
+
+test("nicho medico: bloqueio nunca eleva a nota acima do próprio subtotal", () => {
+  const result = scoreQualification(
+    profile({
+      fullName: "Carlos",
+      bio: "Médico atuante em Florianópolis.",
+      followersCount: 100_000,
+    }),
+    signals({ student_or_resident: true, location_confirmed: true, practice_ownership: false }),
+    "medico",
+  );
+  // profissão + local + ativo + seguidores somam mais que 30, mas o bloqueio de
+  // residente sem consultório próprio limita a nota a 30.
+  assert.equal(result.score, 30);
+  assert.match(result.breakdown.automatic_block ?? "", /residente sem consultório/);
+});
+
+test("nicho medico: não bloqueia psicóloga, apenas nega os pontos de profissão", () => {
   const result = scoreQualification(
     profile(),
     signals({ profession_confirmed: false, personal_profile: false }),
     "medico",
   );
-  assert.equal(result.score, 40);
   assert.equal(result.is_icp, false);
-  assert.match(result.breakdown.automatic_block ?? "", /nicho medico/);
+  assert.equal(result.breakdown.automatic_block, null);
+  assert.equal(result.breakdown.profession_confirmed, 0);
 });

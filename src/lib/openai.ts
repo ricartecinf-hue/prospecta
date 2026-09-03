@@ -11,6 +11,11 @@ const signalSchema = z.object({
   professional_active: z.boolean(),
   service_mentioned: z.boolean(),
   personal_profile: z.boolean(),
+  // Sinais usados pelo nicho "medico" (evento presencial) — o Gemini sempre responde
+  // todos os campos; o scorer de cada nicho só lê os que fazem sentido para ele.
+  location_confirmed: z.boolean(),
+  practice_ownership: z.boolean(),
+  student_or_resident: z.boolean(),
   evidence: z.string().max(300),
 });
 export type QualificationResult = StructuredQualification;
@@ -27,10 +32,13 @@ function model() {
         type: SchemaType.OBJECT,
         properties: {
           profession_confirmed: { type: SchemaType.BOOLEAN, description: "Profissão-alvo explícita no nome ou bio" },
-          mental_health_content: { type: SchemaType.BOOLEAN, description: "Posts recentes tratam de saúde mental" },
+          mental_health_content: { type: SchemaType.BOOLEAN, description: "Posts recentes tratam do tema do nicho (quando aplicável)" },
           professional_active: { type: SchemaType.BOOLEAN, description: "Bio profissional completa e posts regulares" },
-          service_mentioned: { type: SchemaType.BOOLEAN, description: "Menciona atendimento, consultório ou sessão" },
+          service_mentioned: { type: SchemaType.BOOLEAN, description: "Menciona atendimento, consultório ou sessão (quando aplicável)" },
           personal_profile: { type: SchemaType.BOOLEAN, description: "Perfil pessoal sem vínculo profissional" },
+          location_confirmed: { type: SchemaType.BOOLEAN, description: "Localização-alvo confirmada na bio ou posts (quando aplicável)" },
+          practice_ownership: { type: SchemaType.BOOLEAN, description: "Sinais de consultório/clínica própria ou empreendedorismo (quando aplicável)" },
+          student_or_resident: { type: SchemaType.BOOLEAN, description: "Estudante ou residente sem consultório próprio (quando aplicável)" },
           evidence: { type: SchemaType.STRING, description: "Evidência objetiva em até duas frases" },
         },
         required: [
@@ -39,6 +47,9 @@ function model() {
           "professional_active",
           "service_mentioned",
           "personal_profile",
+          "location_confirmed",
+          "practice_ownership",
+          "student_or_resident",
           "evidence",
         ],
       },
@@ -76,18 +87,23 @@ async function assertMonthlyBudget() {
   }
 }
 
-/** Rótulos que o prompt do Gemini usa para descrever a profissão-alvo e o conteúdo esperado de cada nicho. */
-const NICHE_PROMPT_LABELS: Record<string, { profession: string; topic: string; dontAssume: string }> = {
-  psicologo: {
-    profession: "psicólogo(a), terapeuta ou psicanalista",
-    topic: "saúde mental (ansiedade, terapia, autoconhecimento, etc.)",
-    dontAssume: "Não presuma profissão a partir de \"Dr.\" ou de conteúdo genérico.",
-  },
-  medico: {
-    profession: "médico(a) — clínico(a) geral ou especialista",
-    topic: "medicina, saúde, procedimentos, exames ou a rotina do consultório",
-    dontAssume: "Não presuma profissão a partir de conteúdo genérico sobre bem-estar; exija indício de formação médica (CRM, \"Dr(a).\" junto de contexto clínico, especialidade citada).",
-  },
+/** Bloco de regras que o prompt do Gemini usa para cada nicho — os critérios de pontuação são bem diferentes entre eles. */
+const NICHE_PROMPT_RULES: Record<string, string> = {
+  psicologo: `- profession_confirmed: true somente se nome ou bio identificar psicólogo(a), terapeuta ou psicanalista.
+- mental_health_content: true somente se os posts recentes tratarem de saúde mental (ansiedade, terapia, autoconhecimento, etc.).
+- professional_active: true somente se houver bio profissional completa e indícios de posts regulares.
+- service_mentioned: true se houver atendimento, consultório, sessão, agendamento, pacientes, online ou presencial.
+- personal_profile: true se não houver vínculo profissional identificável.
+- location_confirmed, practice_ownership, student_or_resident: não se aplicam a este nicho — responda sempre false.
+- Não presuma profissão a partir de "Dr." ou de conteúdo genérico.`,
+  medico: `- profession_confirmed: true somente se nome ou bio identificar médico(a) — clínico(a) geral ou especialista (CRM, "Dr(a)." em contexto clínico, especialidade citada).
+- location_confirmed: true somente se a bio ou os posts confirmarem que o perfil está em Florianópolis, São José, Palhoça, Biguaçu, Joinville, Blumenau ou em Santa Catarina.
+- practice_ownership: true se houver sinal de consultório ou clínica própria — menção a "minha clínica", equipe, sócio-fundador(a), expansão, unidades ou gestão do próprio negócio. Ser funcionário(a) de uma clínica de terceiros não conta.
+- professional_active: true somente se houver bio profissional completa e indícios de posts regulares sobre medicina, procedimentos ou rotina de consultório.
+- personal_profile: true se não houver vínculo profissional identificável.
+- student_or_resident: true se o perfil se identificar como estudante de medicina, interno(a) ou residente (R1–R4) sem consultório próprio.
+- mental_health_content, service_mentioned: não se aplicam a este nicho — responda sempre false.
+- Não presuma profissão a partir de conteúdo genérico sobre bem-estar; exija indício real de formação médica.`,
 };
 
 export async function qualifyProfile(
@@ -96,7 +112,7 @@ export async function qualifyProfile(
 ): Promise<QualificationResult> {
   const config = env();
   await assertMonthlyBudget();
-  const labels = NICHE_PROMPT_LABELS[campaign.niche] ?? NICHE_PROMPT_LABELS.psicologo;
+  const rules = NICHE_PROMPT_RULES[campaign.niche] ?? NICHE_PROMPT_RULES.psicologo;
   const prompt = `Você é um qualificador de leads para ${campaign.product_name}.
 
 ICP: ${campaign.icp_description}
@@ -111,12 +127,7 @@ Posts: ${profile.postsCount ?? "desconhecido"}
 Conteúdo recente: ${profile.recentPosts.join(" | ") || "não disponível"}
 
 Regras:
-- profession_confirmed: true somente se nome ou bio identificar ${labels.profession}.
-- mental_health_content: true somente se os posts recentes tratarem de ${labels.topic}.
-- professional_active: true somente se houver bio profissional completa e indícios de posts regulares.
-- service_mentioned: true se houver atendimento, consultório, sessão, agendamento, pacientes, online ou presencial.
-- personal_profile: true se não houver vínculo profissional identificável.
-- ${labels.dontAssume}`;
+${rules}`;
 
   await audit("gemini.qualification.before", { username: profile.username, model: config.GEMINI_MODEL });
   const result = await model().generateContent(prompt);

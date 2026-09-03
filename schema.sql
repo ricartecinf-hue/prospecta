@@ -308,8 +308,9 @@ INSERT INTO prospecta.campaign_config (
 );
 
 -- ============================================================
--- SEED: segundo nicho — médicos de Florianópolis e região
--- Fica INATIVO até definir produto e a mensagem de primeira DM
+-- SEED: segundo nicho — convite para evento presencial de vendas
+-- e estratégias para médicos empreendedores de Florianópolis e
+-- região. Fica INATIVO até definir a mensagem de primeira DM.
 -- ============================================================
 INSERT INTO prospecta.campaign_config (
   niche,
@@ -327,17 +328,17 @@ INSERT INTO prospecta.campaign_config (
   active
 ) VALUES (
   'medico',
-  'Médico(a) com perfil ativo no Instagram, entre 500 e 50.000 seguidores, localizado em Florianópolis, São José, Palhoça, Biguaçu, Joinville ou Blumenau, que posta sobre medicina, saúde, procedimentos ou o dia a dia do consultório.',
+  'Médico(a) com consultório ou clínica própria, perfil ativo no Instagram, entre 1.000 e 100.000 seguidores, localizado em Florianópolis, São José, Palhoça, Biguaçu, Joinville ou Blumenau (confirmado pela bio ou por posts com geolocalização), que posta sobre medicina, procedimentos, o dia a dia do consultório ou vida profissional, com sinais de empreendedorismo (menciona equipe, clínica própria, expansão, gestão).',
   ARRAY[
-    '#medicodeflorianopolis', '#medicosc', '#medicinasc', '#medico',
-    '#clinicamedica', '#consultoriomedico', '#medicobrasileiro',
-    '#saudesc', '#florianopolis', '#joinville', '#blumenau'
+    '#medicodeflorianopolis', '#medicosc', '#medicinasc', '#medicobrasileiro',
+    '#clinicamedica', '#consultoriomedico', '#medico', '#florianopolis',
+    '#joinville', '#blumenau', '#medicoempreendedor', '#medicosonline'
   ],
-  ARRAY[]::text[],
-  'A definir',
+  ARRAY['@dr.matches', '@medicinadesucesso', '@dr.financas'],
+  'Evento presencial de vendas e estratégias para médicos — Florianópolis',
   NULL,
   ARRAY[]::text[],
-  'RASCUNHO — não enviar. Defina o produto e a primeira mensagem em /config antes de ativar esta campanha.',
+  'RASCUNHO — não enviar. Escreva a primeira mensagem em /config antes de ativar esta campanha.',
   NULL,
   '5554981133456',
   30,
