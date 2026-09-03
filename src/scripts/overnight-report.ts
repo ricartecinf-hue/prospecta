@@ -7,7 +7,7 @@ import { closeDatabase, query } from "@/lib/db";
 const RUN_KEY = "overnight_run_2026_09_02";
 
 async function main() {
-  const state = await query<{ value: { started_at: string; baseline_leads: number; target: number } }>(
+  const state = await query<{ value: { started_at: string; baseline_leads: number; target: number; ended_at?: string; outcome?: string } }>(
     "SELECT value FROM agent_state WHERE key = $1",
     [RUN_KEY],
   );
@@ -43,6 +43,8 @@ async function main() {
     "",
     `- Início: ${new Date(run.started_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`,
     `- Atualização: ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`,
+    run.ended_at ? `- Encerramento: ${new Date(run.ended_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}` : "",
+    run.outcome ? `- Resultado: ${run.outcome}` : "",
     `- Meta: ${run.target} leads descobertos e qualificados`,
     `- Leads descobertos: ${value.discovered}`,
     `- Leads qualificados: ${value.qualified}`,
