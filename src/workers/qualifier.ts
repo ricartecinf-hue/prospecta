@@ -3,7 +3,7 @@ import { audit, getCampaignConfig, query } from "@/lib/db";
 import { readProfile } from "@/lib/instagram";
 import { enqueueJob } from "@/lib/job-queue";
 import { geminiRetryReason, qualifyProfile } from "@/lib/openai";
-import type { Lead } from "@/lib/types";
+import type { InstagramProfile, Lead } from "@/lib/types";
 import { runWorker } from "@/lib/worker";
 
 const payloadSchema = z.object({ leadId: z.string().uuid() });
@@ -32,7 +32,21 @@ runWorker("qualify", async (job) => {
   if (!lead || lead.do_not_contact || lead.status === "do_not_contact") return { action: "complete" };
 
   const campaign = await getCampaignConfig(lead.niche);
-  const profile = await readProfile(lead.ig_username);
+  const profile: InstagramProfile = lead.recent_posts?.length
+    ? {
+      username: lead.ig_username,
+      fullName: lead.full_name ?? "",
+      bio: lead.bio ?? "",
+      followersCount: lead.followers_count,
+      followingCount: lead.following_count,
+      postsCount: lead.posts_count,
+      profilePicUrl: lead.profile_pic_url,
+      recentPosts: lead.recent_posts,
+      whatsapp: lead.whatsapp,
+      email: lead.email,
+      igProfileUrl: lead.ig_profile_url,
+    }
+    : await readProfile(lead.ig_username);
   let qualification;
   try {
     qualification = await qualifyProfile(profile, campaign);

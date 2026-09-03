@@ -29,6 +29,10 @@ CREATE TABLE prospecta.leads (
   following_count INTEGER,
   posts_count     INTEGER,
   profile_pic_url TEXT,
+  whatsapp        TEXT,
+  email           TEXT,
+  ig_profile_url  TEXT,
+  recent_posts    TEXT[] NOT NULL DEFAULT '{}',
   
   -- Qualificação
   niche           TEXT NOT NULL,           -- MVP: 'psicologo'
@@ -287,7 +291,7 @@ INSERT INTO prospecta.campaign_config (
     '#terapia', '#saudemental', '#consultoriodepsicologia',
     '#psicoterapia', '#psicologaclinica', '#terapeutaonline'
   ],
-  ARRAY['@psico_manager', '@psicoplanner.app'],
+  ARRAY['@psico_manager', '@psicoplanner.app', '@sinappsy'],
   'Sinapsi — sistema de gestão para psicólogos',
   'https://sinapsi.qszuuz.easypanel.host',
   ARRAY[

@@ -106,13 +106,14 @@ O dashboard fica em `http://localhost:3000`. Em produção, `DASHBOARD_USER` e `
 
 ## Fluxo e garantias
 
-1. O prospector varre diariamente as hashtags e seguidores dos concorrentes configurados, salva novos perfis e cria jobs `qualify`.
+1. O prospector varre hashtags e seguidores dos concorrentes configurados, extrai Instagram, WhatsApp e email, salva também os posts recentes e cria jobs `qualify`.
 2. Antes de salvar ou consumir Gemini, o prospector exige que a profissão-alvo apareça no nome, bio ou @ e descarta fontes/perfis generalistas de saúde. O qualifier usa exatamente o ICP da campanha e o modelo configurado em `GEMINI_MODEL` (por padrão, `gemini-3.1-flash-lite`). O Gemini identifica sinais objetivos e o código soma pesos fixos: profissão 35, conteúdo de saúde mental 25, audiência até 15, atividade profissional 15 e oferta de atendimento 10. A audiência cresce com os seguidores: abaixo de 500 vale 0, entre 500–3 mil vale 3, entre 3–5 mil vale 6, entre 5–10 mil vale 9, entre 10–20 mil vale 12 e acima de 20 mil vale 15. Perfis pessoais, empresas sem psicólogo identificado e profissões excluídas sem vínculo com psicologia ficam limitados a 40 pontos. Perfis com score abaixo do mínimo viram `disqualified`.
 3. Outreach e follow-up verificam `do_not_contact`, janela de Brasília, teto diário e intervalo aleatório antes do envio.
 4. A reserva de DM usa advisory lock e `increment_rate_limit('dm_total', max)`, impedindo que réplicas ultrapassem 30 DMs totais por dia.
 5. Três erros consecutivos de envio pausam toda a fila por duas horas. Sessão expirada pausa por 24 horas ou até retomada manual.
 6. O inbox roda a cada cinco minutos. “Para”, “não quero”, “sair” e equivalentes marcam opt-out permanente e cancelam outreach/follow-up pendentes.
 7. Respostas com intenção explícita criam um handoff para o WhatsApp, com perfil, score e histórico recente.
+8. A prospecção reserva cada visita no Postgres: no máximo 150 por noite, 30 na última hora e intervalo mínimo de 8 segundos. Pausa entre 02:00–03:00 e 03:41–07:00; HTTP 429 ou captcha acionam pausa auditada de duas horas.
 
 Toda ação externa (perfil, DM, inbox, Gemini e WhatsApp) gera eventos antes/depois em `audit_log`. Jobs usam exclusivamente `claim_job()`, baseado em `FOR UPDATE SKIP LOCKED`; após três falhas vão para `dead`.
 
@@ -140,9 +141,9 @@ Se usar o modo híbrido, pause ou remova o serviço `prospecta-jobs` do EasyPane
 
 ## Operação e manutenção
 
-- `/dashboard`: métricas do dia, fila, circuit breaker e auditoria recente.
-- `/leads`: filtros por status/nicho e ordenação por score.
-- `/leads/[id]`: perfil, justificativa do score e conversa.
+- `/dashboard`: métricas do dia, contatos diretos, fila, circuit breaker e auditoria recente.
+- `/leads`: filtros por status/nicho, ordenação por score e atalhos para Instagram, WhatsApp e email.
+- `/leads/[id]`: todos os dados do perfil, links de contato, justificativa, detalhamento do score e conversa.
 - `/config`: ICP, fontes, claims, templates e limites.
 - Jobs `dead`: consulte `last_error`, corrija a causa e só então reagende manualmente no banco.
 - Auditoria: `SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 100;`.

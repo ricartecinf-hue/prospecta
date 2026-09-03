@@ -11,6 +11,7 @@ interface Metrics {
   dms_today: number;
   response_rate: string;
   handoffs_today: number;
+  direct_contacts: number;
 }
 
 export default async function DashboardPage() {
@@ -19,7 +20,8 @@ export default async function DashboardPage() {
       (SELECT COUNT(*)::int FROM leads WHERE discovered_at >= date_trunc('day', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo') AS leads_today,
       (SELECT COUNT(*)::int FROM conversations WHERE direction = 'outbound' AND sent_at >= date_trunc('day', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo') AS dms_today,
       (SELECT COALESCE(ROUND(100.0 * COUNT(DISTINCT lead_id) FILTER (WHERE direction = 'inbound') / NULLIF(COUNT(DISTINCT lead_id) FILTER (WHERE direction = 'outbound'), 0), 1), 0)::text FROM conversations) AS response_rate,
-      (SELECT COUNT(*)::int FROM leads WHERE status = 'handed_off' AND updated_at >= date_trunc('day', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo') AS handoffs_today`),
+      (SELECT COUNT(*)::int FROM leads WHERE status = 'handed_off' AND updated_at >= date_trunc('day', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo') AS handoffs_today,
+      (SELECT COUNT(*)::int FROM leads WHERE whatsapp IS NOT NULL OR email IS NOT NULL) AS direct_contacts`),
     query<{ status: string; count: number }>("SELECT status, COUNT(*)::int AS count FROM jobs GROUP BY status ORDER BY status"),
     query<{ event: string; payload: Record<string, unknown>; created_at: Date }>("SELECT event, payload, created_at FROM audit_log ORDER BY created_at DESC LIMIT 8"),
     getCircuitState(),
@@ -31,6 +33,7 @@ export default async function DashboardPage() {
     ["DMs enviadas hoje", metrics.dms_today],
     ["Taxa de resposta", `${metrics.response_rate}%`],
     ["Handoffs hoje", metrics.handoffs_today],
+    ["Leads com contato direto", metrics.direct_contacts],
   ];
   return (
     <div className="space-y-7">
@@ -41,7 +44,7 @@ export default async function DashboardPage() {
           <ResumeButton />
         </div>
       )}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {cards.map(([label, value]) => <Card key={String(label)}><CardContent><p className="text-sm text-slate-500">{label}</p><p className="mt-2 text-3xl font-bold">{value}</p></CardContent></Card>)}
       </div>
       <div className="grid gap-6 lg:grid-cols-2">

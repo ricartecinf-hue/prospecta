@@ -29,6 +29,7 @@ HASHTAGS:
 CONCORRENTES:
   @psico_manager     (37k seguidores — sistema específico para psicólogos)
   @psicoplanner.app  (11k seguidores — app para psicólogas)
+  @sinappsy          (sistema específico para psicólogos)
 
 PRÉ-FILTRO:
   Só persistir perfis cuja profissão-alvo apareça no nome, bio ou @.

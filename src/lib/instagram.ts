@@ -1,9 +1,17 @@
 import type { Locator, Page } from "playwright";
 import { assertInstagramSession, getInstagramPage, withChromeLock } from "./chrome";
 import { audit } from "./db";
+import { extractProfileContacts } from "./profile-contacts";
 import type { InstagramProfile } from "./types";
 
 const IG_ORIGIN = "https://www.instagram.com";
+
+export class InstagramProtectionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InstagramProtectionError";
+  }
+}
 
 function normalizeUsername(value: string) {
   return value.trim().replace(/^@/, "").replace(/\/$/, "").toLowerCase();
@@ -28,7 +36,8 @@ async function gotoInstagram(page: Page, path: string) {
   let lastError: unknown;
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
-      await page.goto(`${IG_ORIGIN}${path}`, { waitUntil: "domcontentloaded", timeout: 30_000 });
+      const response = await page.goto(`${IG_ORIGIN}${path}`, { waitUntil: "domcontentloaded", timeout: 30_000 });
+      if (response?.status() === 429) throw new InstagramProtectionError("Instagram respondeu HTTP 429.");
       lastError = null;
       break;
     } catch (error) {
@@ -39,6 +48,9 @@ async function gotoInstagram(page: Page, path: string) {
     }
   }
   if (lastError) throw lastError;
+  const protectionPage = /instagram\.com\/challenge/i.test(page.url())
+    || await page.getByText(/captcha|confirme que você é humano|confirm you.re human/i).count() > 0;
+  if (protectionPage) throw new InstagramProtectionError("Captcha ou desafio de segurança detectado no Instagram.");
   await assertInstagramSession(page);
   await page.waitForTimeout(1_200);
 }
@@ -53,19 +65,26 @@ async function profileFromCurrentPage(page: Page, username: string): Promise<Ins
   const postCount = headerText.match(/([\d.,]+\s*(?:mil|mi)?)\s+(?:publicaç|posts?)/i);
   const fullName = (title?.split("(")[0] ?? (await text(page.locator("header h1, header h2")))).trim();
   const bioCandidates = await page.locator("header section div[dir='auto'], header span[dir='auto']").allTextContents().catch(() => []);
+  const profileLinks = await page.locator('header a[href]').evaluateAll((anchors) =>
+    anchors.map((anchor) => (anchor as HTMLAnchorElement).href).filter(Boolean),
+  ).catch(() => [] as string[]);
+  const bio = bioCandidates.filter((item) => item.trim() && !item.includes("seguidores")).slice(-4).join(" ").trim();
   const recentPosts = await page.locator('main a[href*="/p/"] img, main a[href*="/reel/"] img').evaluateAll((images) =>
     images.slice(0, 6).map((image) => image.getAttribute("alt") ?? "").filter(Boolean),
   ).catch(() => [] as string[]);
 
+  const cleanUsername = normalizeUsername(username);
+  const contacts = extractProfileContacts(bio, profileLinks, cleanUsername);
   return {
-    username: normalizeUsername(username),
+    username: cleanUsername,
     fullName,
-    bio: bioCandidates.filter((item) => item.trim() && !item.includes("seguidores")).slice(-2).join(" ").trim(),
+    bio,
     followersCount: parseCompactNumber(counts?.[1] ?? metaPtCounts?.[1] ?? ptCounts?.[1] ?? null),
     followingCount: parseCompactNumber(counts?.[2] ?? metaPtCounts?.[2] ?? ptCounts?.[2] ?? null),
     postsCount: parseCompactNumber(counts?.[3] ?? metaPtCounts?.[3] ?? postCount?.[1] ?? null),
     profilePicUrl: await page.locator("header img").first().getAttribute("src").catch(() => null),
     recentPosts,
+    ...contacts,
   };
 }
 

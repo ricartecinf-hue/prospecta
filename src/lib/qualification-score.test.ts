@@ -12,6 +12,9 @@ const profile = (overrides: Partial<InstagramProfile> = {}): InstagramProfile =>
   postsCount: 80,
   profilePicUrl: null,
   recentPosts: ["Como cuidar da saúde mental", "Ansiedade e autocuidado"],
+  whatsapp: null,
+  email: null,
+  igProfileUrl: "https://instagram.com/psi.teste",
   ...overrides,
 });
 

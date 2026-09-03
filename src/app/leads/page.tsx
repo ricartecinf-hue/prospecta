@@ -1,10 +1,15 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { query } from "@/lib/db";
 import type { Lead } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+function ContactLink({ href, label, children }: { href: string; label: string; children: ReactNode }) {
+  return <a href={href} aria-label={label} title={label} target="_blank" rel="noreferrer" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-base hover:border-blue-300 hover:bg-blue-50">{children}</a>;
+}
 
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ status?: string; niche?: string }> }) {
   const filters = await searchParams;
@@ -22,7 +27,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
         <select name="niche" defaultValue={filters.niche ?? ""} className="rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="">Todos os nichos</option>{niches.rows.map(({ niche }) => <option key={niche}>{niche}</option>)}</select>
         <button className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Filtrar</button>
       </form>
-      <Card className="overflow-hidden"><CardContent className="overflow-x-auto p-0"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Lead</th><th className="px-5 py-3">Nicho</th><th className="px-5 py-3">Origem</th><th className="px-5 py-3">Score</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Descoberto</th></tr></thead><tbody>{result.rows.map((lead) => <tr key={lead.id} className="border-t border-slate-100 hover:bg-slate-50"><td className="px-5 py-4"><Link href={`/leads/${lead.id}`} className="font-semibold text-blue-700 hover:underline">{lead.full_name || `@${lead.ig_username}`}</Link><span className="block text-xs text-slate-500">@{lead.ig_username}</span></td><td className="px-5 py-4">{lead.niche}</td><td className="px-5 py-4 text-slate-500">{lead.source}</td><td className="px-5 py-4 text-lg font-bold">{lead.score}</td><td className="px-5 py-4"><Badge variant={lead.status}>{lead.status}</Badge></td><td className="px-5 py-4 text-slate-500">{lead.discovered_at.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}</td></tr>)}</tbody></table>{result.rows.length === 0 && <p className="p-8 text-center text-slate-500">Nenhum lead encontrado.</p>}</CardContent></Card>
+      <Card className="overflow-hidden"><CardContent className="overflow-x-auto p-0"><table className="w-full min-w-[980px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Lead</th><th className="px-5 py-3">Contatos</th><th className="px-5 py-3">Email</th><th className="px-5 py-3">Nicho</th><th className="px-5 py-3">Origem</th><th className="px-5 py-3">Score</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Descoberto</th></tr></thead><tbody>{result.rows.map((lead) => <tr key={lead.id} className="border-t border-slate-100 hover:bg-slate-50"><td className="px-5 py-4"><Link href={`/leads/${lead.id}`} className="font-semibold text-blue-700 hover:underline">{lead.full_name || `@${lead.ig_username}`}</Link><span className="block text-xs text-slate-500">@{lead.ig_username}</span></td><td className="px-5 py-4"><div className="flex gap-2"><ContactLink href={lead.ig_profile_url || `https://instagram.com/${lead.ig_username}`} label={`Abrir @${lead.ig_username} no Instagram`}>◎</ContactLink>{lead.whatsapp && <ContactLink href={`https://wa.me/${lead.whatsapp}`} label={`Abrir WhatsApp de @${lead.ig_username}`}>◉</ContactLink>}</div></td><td className="px-5 py-4">{lead.email ? <a href={`mailto:${lead.email}`} className="text-blue-700 hover:underline">{lead.email}</a> : <span className="text-slate-400">—</span>}</td><td className="px-5 py-4">{lead.niche}</td><td className="px-5 py-4 text-slate-500">{lead.source}</td><td className="px-5 py-4 text-lg font-bold">{lead.score}</td><td className="px-5 py-4"><Badge variant={lead.status}>{lead.status}</Badge></td><td className="px-5 py-4 text-slate-500">{lead.discovered_at.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}</td></tr>)}</tbody></table>{result.rows.length === 0 && <p className="p-8 text-center text-slate-500">Nenhum lead encontrado.</p>}</CardContent></Card>
     </div>
   );
 }

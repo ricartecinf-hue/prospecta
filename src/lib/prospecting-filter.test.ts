@@ -12,6 +12,9 @@ const profile = (overrides: Partial<InstagramProfile> = {}): InstagramProfile =>
   postsCount: 20,
   profilePicUrl: null,
   recentPosts: [],
+  whatsapp: null,
+  email: null,
+  igProfileUrl: "https://instagram.com/perfil",
   ...overrides,
 });
 

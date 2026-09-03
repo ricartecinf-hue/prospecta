@@ -20,6 +20,10 @@ export interface Lead extends TenantScoped {
   following_count: number | null;
   posts_count: number | null;
   profile_pic_url: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  ig_profile_url: string;
+  recent_posts: string[];
   niche: string;
   score: number;
   score_reason: string | null;
@@ -85,4 +89,7 @@ export interface InstagramProfile extends TenantScoped {
   postsCount: number | null;
   profilePicUrl: string | null;
   recentPosts: string[];
+  whatsapp: string | null;
+  email: string | null;
+  igProfileUrl: string;
 }

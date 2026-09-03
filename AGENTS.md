@@ -65,6 +65,8 @@ src/
 - Conectar SEMPRE via CDP (`playwright.chromium.connectOverCDP('http://localhost:9222')`)
 - Nunca abrir novo Chrome — sempre reusar a sessão existente
 - Se a sessão expirar (login page detectada) → pausar jobs, logar no audit_log, não tentar auto-login
+- Prospecção: máximo 150 visitas por noite, 30 por hora e intervalo mínimo de 8 segundos por perfil
+- Prospecção pausa 02:00–03:00 e 03:41–07:00; HTTP 429 ou captcha pausa por 2 horas
 
 ### Fila de jobs
 - Usar SEMPRE `claim_job()` do Postgres para pegar jobs — nunca SELECT sem FOR UPDATE

@@ -22,7 +22,9 @@
     "worker:followup": "tsx src/workers/followup.ts",
     "worker:inbox": "tsx src/workers/inbox.ts",
     "worker:handoff": "tsx src/workers/handoff.ts",
-    "jobs:seed": "tsx src/scripts/seed-jobs.ts"
+    "jobs:seed": "tsx src/scripts/seed-jobs.ts",
+    "overnight:start": "tsx src/scripts/start-overnight.ts",
+    "overnight:report": "tsx src/scripts/overnight-report.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
