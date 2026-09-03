@@ -2,7 +2,7 @@ import { z } from "zod";
 import { audit, getCampaignConfig, query } from "@/lib/db";
 import { discoverByHashtag, discoverFromFollowers, InstagramProtectionError, readProfile } from "@/lib/instagram";
 import { enqueueJob } from "@/lib/job-queue";
-import { filterPsychologyProspect } from "@/lib/prospecting-filter";
+import { filterProspectByNiche } from "@/lib/prospecting-filter";
 import { getProspectingAvailability, pauseProspecting, reserveProspectingVisit } from "@/lib/prospecting-safety";
 import { runWorker } from "@/lib/worker";
 
@@ -64,7 +64,7 @@ runWorker("prospect", async (job) => {
     }
     try {
       const profile = await readProfile(username);
-      const candidate = filterPsychologyProspect(profile);
+      const candidate = filterProspectByNiche(campaign.niche, profile);
       if (!candidate.accepted) {
         await audit("prospector.profile_filtered", {
           username: profile.username,

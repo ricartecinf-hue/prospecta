@@ -39,11 +39,32 @@ const normalize = (value: string) => value
   .replace(/[\u0300-\u036f]/g, "")
   .toLowerCase();
 
-const targetProfession = /\b(psicolog[oa]|psicanalista|terapeuta|crp)\b/i;
-const excludedProfession = /\b(medic[oa]|nutricionista|nutri|fisioterapeuta|fisio|coach)\b/i;
 const companyProfile = /\b(empresa|clinica|instituto|centro|equipe|multidisciplinar)\b/i;
 const serviceTerms = /\b(atendimento|atendimentos|consultorio|consulta|sessao|sessoes|agendamento|agenda|psicoterapia|paciente|pacientes|online|presencial)\b/i;
-const mentalHealthTerms = /\b(saude mental|psicologia|psicoterapia|terapia|ansiedade|depressao|autoestima|autoconhecimento|emocao|emocoes|trauma|luto|burnout|tcc|relacionamento)\b/i;
+
+/** Regras por nicho: quem \u00e9 o profissional-alvo, quem fica de fora e o que conta como conte\u00fado do tema. */
+interface NicheKeywords {
+  targetProfession: RegExp;
+  excludedProfession: RegExp;
+  topicContent: RegExp;
+}
+
+const NICHE_KEYWORDS: Record<string, NicheKeywords> = {
+  psicologo: {
+    targetProfession: /\b(psicolog[oa]|psicanalista|terapeuta|crp)\b/i,
+    excludedProfession: /\b(medic[oa]|nutricionista|nutri|fisioterapeuta|fisio|coach)\b/i,
+    topicContent: /\b(saude mental|psicologia|psicoterapia|terapia|ansiedade|depressao|autoestima|autoconhecimento|emocao|emocoes|trauma|luto|burnout|tcc|relacionamento)\b/i,
+  },
+  medico: {
+    targetProfession: /\b(medic[oa]|doutor(?:a)?|\bdr\.?\b|\bdra\.?\b|clinico geral|crm)\b/i,
+    excludedProfession: /\b(psicolog[oa]|nutricionista|nutri|fisioterapeuta|fisio|coach|dentista|personal trainer)\b/i,
+    topicContent: /\b(medicina|saude|procedimento|procedimentos|cirurgia|diagnostico|tratamento|especialidade|prevencao|consultorio|plantao|convenio|exame|exames)\b/i,
+  },
+};
+
+function keywordsFor(niche: string): NicheKeywords {
+  return NICHE_KEYWORDS[niche] ?? NICHE_KEYWORDS.psicologo;
+}
 
 function points(enabled: boolean, weight: number) {
   return enabled ? weight : 0;
@@ -61,13 +82,15 @@ export function followerPoints(followers: number | null) {
 export function scoreQualification(
   profile: InstagramProfile,
   signals: QualificationSignals,
+  niche = "psicologo",
 ): StructuredQualification {
+  const { targetProfession, excludedProfession, topicContent } = keywordsFor(niche);
   const identityText = normalize(`${profile.fullName} ${profile.bio}`);
   const recentText = normalize(profile.recentPosts.join(" "));
   const evidenceText = normalize(signals.evidence);
   const allText = `${identityText} ${recentText} ${evidenceText}`;
   const professionConfirmed = targetProfession.test(identityText) || signals.profession_confirmed;
-  const mentalHealthContent = mentalHealthTerms.test(recentText) || signals.mental_health_content;
+  const mentalHealthContent = topicContent.test(recentText) || signals.mental_health_content;
   const professionalActive = signals.professional_active;
   const serviceMentioned = serviceTerms.test(allText) || signals.service_mentioned;
 
@@ -87,7 +110,7 @@ export function scoreQualification(
     + breakdown.service_mentioned;
 
   if (!professionConfirmed && excludedProfession.test(allText)) {
-    breakdown.automatic_block = "profissão fora do ICP sem vínculo com psicologia";
+    breakdown.automatic_block = `profissão fora do ICP sem vínculo com o nicho ${niche}`;
   } else if (!professionConfirmed && companyProfile.test(allText)) {
     breakdown.automatic_block = "empresa ou clínica sem psicólogo identificado";
   } else if (!professionConfirmed && signals.personal_profile) {

@@ -50,7 +50,7 @@ runWorker("followup", async (job) => {
       reason: "fora da janela operacional",
     };
   }
-  const reservation = await reserveDmSlot(Math.min(30, campaign.max_dm_per_day));
+  const reservation = await reserveDmSlot(Math.min(30, campaign.max_dm_per_day), campaign.niche);
   if (!reservation.allowed) return { action: "reschedule", runAfter: reservation.retryAt, reason: reservation.reason };
 
   let sent: boolean;

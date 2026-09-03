@@ -106,3 +106,29 @@ test("não aprova perfil sem profissão-alvo mesmo que outros critérios somem 6
   assert.equal(result.score, 65);
   assert.equal(result.is_icp, false);
 });
+
+test("nicho medico: aprova médico com conteúdo clínico", () => {
+  const result = scoreQualification(
+    profile({
+      username: "dr.medico",
+      fullName: "Carlos — Médico",
+      bio: "Médico clínico geral. CRM 00000. Atendimento online e presencial.",
+      recentPosts: ["Prevenção e diagnóstico precoce", "Rotina do consultório"],
+    }),
+    signals(),
+    "medico",
+  );
+  assert.equal(result.score, 100);
+  assert.equal(result.is_icp, true);
+});
+
+test("nicho medico: bloqueia psicóloga fora do ICP de médicos", () => {
+  const result = scoreQualification(
+    profile(),
+    signals({ profession_confirmed: false, personal_profile: false }),
+    "medico",
+  );
+  assert.equal(result.score, 40);
+  assert.equal(result.is_icp, false);
+  assert.match(result.breakdown.automatic_block ?? "", /nicho medico/);
+});

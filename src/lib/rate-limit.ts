@@ -2,8 +2,10 @@ import { transaction } from "./db";
 
 export type DmReservation = { allowed: true; nextAllowedAt: Date } | { allowed: false; retryAt: Date; reason: "daily_limit" | "interval" };
 
-export async function reserveDmSlot(maxPerDay: number, minSeconds = 90, maxSeconds = 240): Promise<DmReservation> {
+export async function reserveDmSlot(maxPerDay: number, niche: string, minSeconds = 90, maxSeconds = 240): Promise<DmReservation> {
   return transaction(async (client) => {
+    // Trava única: é a mesma sessão do Chrome/Instagram enviando por todos os nichos,
+    // então o intervalo mínimo entre DMs precisa ser global, não por nicho.
     await client.query("SELECT pg_advisory_xact_lock(hashtext('prospecta:dm-send'))");
     const stateResult = await client.query<{ next_dm_at: Date | null }>(
       `SELECT NULLIF(value->>'next_dm_at', '')::timestamptz AS next_dm_at
@@ -14,9 +16,10 @@ export async function reserveDmSlot(maxPerDay: number, minSeconds = 90, maxSecon
       return { allowed: false, retryAt: nextDmAt, reason: "interval" };
     }
 
+    // Contador diário separado por nicho — cada campanha respeita seu próprio max_dm_per_day.
     const rateResult = await client.query<{ allowed: boolean }>(
-      "SELECT increment_rate_limit('dm_total', $1) AS allowed",
-      [maxPerDay],
+      "SELECT increment_rate_limit($2, $1) AS allowed",
+      [maxPerDay, `dm_total:${niche}`],
     );
     if (!rateResult.rows[0]?.allowed) {
       const retry = await client.query<{ retry_at: Date }>(

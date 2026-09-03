@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { filterPsychologyProspect } from "./prospecting-filter";
+import { filterMedicoProspect, filterProspectByNiche, filterPsychologyProspect } from "./prospecting-filter";
 import type { InstagramProfile } from "./types";
 
 const profile = (overrides: Partial<InstagramProfile> = {}): InstagramProfile => ({
@@ -37,4 +37,22 @@ test("rejeita médico mesmo que publique sobre saúde mental", () => {
 
 test("rejeita agência que atende psicólogos sem profissional identificado", () => {
   assert.equal(filterPsychologyProspect(profile({ bio: "Marketing para psicólogos" })).accepted, false);
+});
+
+test("aceita médico identificado na bio", () => {
+  assert.equal(filterMedicoProspect(profile({ bio: "Médico | Clínica Geral | CRM 00000" })).accepted, true);
+});
+
+test("aceita identidade dr./dra. no username", () => {
+  assert.equal(filterMedicoProspect(profile({ username: "dra.juliana" })).accepted, true);
+});
+
+test("rejeita psicóloga na barreira de médico", () => {
+  assert.equal(filterMedicoProspect(profile({ bio: "Psicóloga clínica | CRP 00/0000" })).accepted, false);
+});
+
+test("filterProspectByNiche despacha para o filtro do nicho certo", () => {
+  const medico = profile({ bio: "Médico e palestrante" });
+  assert.equal(filterProspectByNiche("medico", medico).accepted, true);
+  assert.equal(filterProspectByNiche("psicologo", medico).accepted, false);
 });

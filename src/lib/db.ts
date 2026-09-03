@@ -57,3 +57,14 @@ export async function getCampaignConfig(niche?: string): Promise<CampaignConfig>
   if (!result.rows[0]) throw new Error(`Nenhuma campanha ativa${niche ? ` para o nicho ${niche}` : ""}.`);
   return result.rows[0];
 }
+
+/** Todos os nichos cadastrados, ativos ou não — usado pelo painel de configuração e pelos seeders. */
+export async function getCampaignConfigs(): Promise<CampaignConfig[]> {
+  const result = await query<CampaignConfig>("SELECT * FROM campaign_config ORDER BY created_at");
+  return result.rows;
+}
+
+export async function getActiveCampaignConfigs(): Promise<CampaignConfig[]> {
+  const result = await query<CampaignConfig>("SELECT * FROM campaign_config WHERE active = true ORDER BY created_at");
+  return result.rows;
+}
