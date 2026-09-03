@@ -97,13 +97,14 @@ const NICHE_PROMPT_RULES: Record<string, string> = {
 - location_confirmed, practice_ownership, student_or_resident: não se aplicam a este nicho — responda sempre false.
 - Não presuma profissão a partir de "Dr." ou de conteúdo genérico.`,
   medico: `- profession_confirmed: true somente se nome ou bio identificar médico(a) — clínico(a) geral ou especialista (CRM, "Dr(a)." em contexto clínico, especialidade citada).
-- location_confirmed: true somente se a bio ou os posts confirmarem que o perfil está em Florianópolis, São José, Palhoça, Biguaçu, Joinville, Blumenau ou em Santa Catarina.
-- practice_ownership: true se houver sinal de consultório ou clínica própria — menção a "minha clínica", equipe, sócio-fundador(a), expansão, unidades ou gestão do próprio negócio. Ser funcionário(a) de uma clínica de terceiros não conta.
+- location_confirmed: true somente se a bio OU os posts declararem explicitamente que o perfil atua em Florianópolis, São José, Palhoça, Biguaçu, Joinville, Blumenau ou Santa Catarina/SC. Sigla de entidade internacional (ex.: "ESC", "FESC" de European Society of Cardiology) NÃO é a sigla do estado; menção a outra cidade/estado brasileiro (ex.: "São Paulo") deve dar false, mesmo que o restante do perfil pareça promissor.
+- practice_ownership: true somente se houver sinal explícito de consultório ou clínica própria — menção literal a "minha clínica", "meu consultório", sócio-fundador(a), expansão, unidades ou gestão do próprio negócio. Texto de certificado, prêmio ou legenda de foto sem essa menção direta deve dar false. Ser funcionário(a) de clínica de terceiros também é false.
 - professional_active: true somente se houver bio profissional completa e indícios de posts regulares sobre medicina, procedimentos ou rotina de consultório.
 - personal_profile: true se não houver vínculo profissional identificável.
 - student_or_resident: true se o perfil se identificar como estudante de medicina, interno(a) ou residente (R1–R4) sem consultório próprio.
 - mental_health_content, service_mentioned: não se aplicam a este nicho — responda sempre false.
-- Não presuma profissão a partir de conteúdo genérico sobre bem-estar; exija indício real de formação médica.`,
+- Não presuma profissão a partir de conteúdo genérico sobre bem-estar; exija indício real de formação médica.
+- Antes de responder, confira se cada campo booleano está de fato sustentado pelo texto que você vai escrever em "evidence"; nunca marque true um critério que a própria evidência contradiz ou não menciona.`,
 };
 
 export async function qualifyProfile(

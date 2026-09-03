@@ -1,3 +1,4 @@
+import { medicoProfession } from "./prospecting-filter";
 import type { InstagramProfile } from "./types";
 
 export const QUALIFICATION_WEIGHTS = {
@@ -138,7 +139,6 @@ function scorePsicologo(profile: InstagramProfile, signals: QualificationSignals
 // o que importa é profissão + localização + sinal de consultório
 // ou clínica própria (perfil de médico empreendedor).
 // ============================================================
-const medicoTargetProfession = /\b(medic[oa]|doutor(?:a)?|\bdr\.?\b|\bdra\.?\b|clinico geral|crm)\b/i;
 const medicoLocationTerms = /\b(florianopolis|floripa|sao jose|palhoca|biguacu|joinville|blumenau|santa catarina|\bsc\b)\b/i;
 const medicoPracticeOwnershipTerms = /\b(clinica propria|consultorio proprio|minha clinica|meu consultorio|fundador|fundadora|proprietari[oa]|socio fundador|nossa clinica|nossa equipe|nossa unidade|unidades|expansao|nova unidade|gestao da clinica|gerencio|administro)\b/i;
 const medicoStudentOrResidentTerms = /\b(estudante de medicina|academic[oa] de medicina|interno de medicina|internato|residente|residencia medica|\br[1234]\b)\b/i;
@@ -158,7 +158,7 @@ function scoreMedico(profile: InstagramProfile, signals: QualificationSignals): 
   const evidenceText = normalize(signals.evidence);
   const allText = `${identityText} ${recentText} ${evidenceText}`;
 
-  const professionConfirmed = medicoTargetProfession.test(identityText) || signals.profession_confirmed;
+  const professionConfirmed = medicoProfession.test(identityText) || signals.profession_confirmed;
   const locationConfirmed = medicoLocationTerms.test(allText) || signals.location_confirmed;
   const practiceOwnership = medicoPracticeOwnershipTerms.test(allText) || signals.practice_ownership;
   const professionalActive = signals.professional_active;

@@ -51,6 +51,14 @@ test("rejeita psicóloga na barreira de médico", () => {
   assert.equal(filterMedicoProspect(profile({ bio: "Psicóloga clínica | CRP 00/0000" })).accepted, false);
 });
 
+test("aceita médico identificado só pela especialidade na bio", () => {
+  assert.equal(filterMedicoProspect(profile({ bio: "Cardiologista | Consultório em Florianópolis" })).accepted, true);
+});
+
+test("aceita 'dr' colado ao nome no username, sem separador", () => {
+  assert.equal(filterMedicoProspect(profile({ username: "drcassiooliveira" })).accepted, true);
+});
+
 test("filterProspectByNiche despacha para o filtro do nicho certo", () => {
   const medico = profile({ bio: "Médico e palestrante" });
   assert.equal(filterProspectByNiche("medico", medico).accepted, true);
