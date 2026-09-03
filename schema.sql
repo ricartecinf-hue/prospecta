@@ -281,7 +281,7 @@ INSERT INTO prospecta.campaign_config (
   min_score_to_dm
 ) VALUES (
   'psicologo',
-  'Psicólogo(a) ou terapeuta brasileiro(a) com perfil ativo no Instagram, entre 500 e 30000 seguidores, que posta sobre saúde mental, atendimentos ou vida profissional no consultório. Atende de forma presencial ou online.',
+  'Psicólogo(a) ou terapeuta brasileiro(a) com perfil ativo no Instagram, a partir de 500 seguidores, que posta sobre saúde mental, atendimentos ou vida profissional no consultório. Atende de forma presencial ou online.',
   ARRAY[
     '#psicologa', '#psicologo', '#psicologia', '#psicologaonline',
     '#terapia', '#saudemental', '#consultoriodepsicologia',

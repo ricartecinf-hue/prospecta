@@ -7,7 +7,7 @@ const profile = (overrides: Partial<InstagramProfile> = {}): InstagramProfile =>
   username: "psi.teste",
   fullName: "Ana — Psicóloga",
   bio: "Psicóloga clínica. Atendimento online e presencial.",
-  followersCount: 2_000,
+  followersCount: 25_000,
   followingCount: 300,
   postsCount: 80,
   profilePicUrl: null,
@@ -43,14 +43,14 @@ test("soma os cinco critérios até 100 pontos", () => {
 test("distribui os pontos de seguidores por faixa", () => {
   assert.deepEqual(
     [499, 500, 3_000, 3_001, 5_000, 5_001, 10_000, 10_001, 20_000, 20_001, 30_000, 30_001].map(followerPoints),
-    [0, 15, 15, 12, 12, 9, 9, 6, 6, 3, 3, 0],
+    [0, 3, 3, 6, 6, 9, 9, 12, 12, 15, 15, 15],
   );
 });
 
-test("não concede pontos de seguidores fora da faixa", () => {
+test("concede pontuação máxima acima de 20 mil sem teto superior", () => {
   const result = scoreQualification(profile({ followersCount: 40_000 }), signals());
-  assert.equal(result.breakdown.followers_in_range, 0);
-  assert.equal(result.score, 85);
+  assert.equal(result.breakdown.followers_in_range, 15);
+  assert.equal(result.score, 100);
 });
 
 test("limita profissão excluída sem psicologia a 40 pontos", () => {

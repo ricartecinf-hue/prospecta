@@ -81,7 +81,7 @@ src/
 - Score mínimo configurável em `campaign_config.min_score_to_dm` (default: 65)
 - Leads abaixo do score → status = 'disqualified', não entrar na fila de outreach
 - Score estruturado: profissão 35, conteúdo de saúde mental 25, seguidores até 15, perfil ativo 15 e atendimento 10
-- Pontos de seguidores: 500–3k = 15; 3–5k = 12; 5–10k = 9; 10–20k = 6; 20–30k = 3; fora da faixa = 0
+- Pontos de seguidores: abaixo de 500 = 0; 500–3k = 3; 3–5k = 6; 5–10k = 9; 10–20k = 12; acima de 20k = 15
 - Médico, nutricionista, fisioterapeuta, coach sem psicologia, empresa sem psicólogo e perfil pessoal têm teto de 40
 - Antes de inserir um lead, o prospector exige psicólogo(a), terapeuta, psicanalista, CRP ou identificador `psi` no nome, bio ou @
 - Não usar fontes generalistas de saúde como concorrentes/sementes da campanha de psicologia

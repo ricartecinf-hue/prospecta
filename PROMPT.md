@@ -15,7 +15,7 @@ PRECO:             R$67/mês
 
 ICP:
   Psicólogo(a) ou terapeuta com perfil ativo no Instagram
-  Entre 500 e 30.000 seguidores
+  A partir de 500 seguidores, com pontuação crescente conforme a audiência
   Posta sobre saúde mental, atendimentos ou dia a dia do consultório
   Localizado no Brasil
   Atende presencial e/ou online

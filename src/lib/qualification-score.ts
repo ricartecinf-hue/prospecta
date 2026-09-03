@@ -50,12 +50,12 @@ function points(enabled: boolean, weight: number) {
 }
 
 export function followerPoints(followers: number | null) {
-  if (followers === null || followers < 500 || followers > 30_000) return 0;
-  if (followers <= 3_000) return 15;
-  if (followers <= 5_000) return 12;
+  if (followers === null || followers < 500) return 0;
+  if (followers <= 3_000) return 3;
+  if (followers <= 5_000) return 6;
   if (followers <= 10_000) return 9;
-  if (followers <= 20_000) return 6;
-  return 3;
+  if (followers <= 20_000) return 12;
+  return 15;
 }
 
 export function scoreQualification(
