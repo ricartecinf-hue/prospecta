@@ -43,9 +43,14 @@ export async function getInstagramPage(): Promise<Page> {
   const context = browser.contexts()[0];
   if (!context) throw new Error("O Chrome conectado por CDP não possui um contexto aberto.");
   const pages = context.pages();
-  const page = pages.find((candidate) => candidate.url().includes("instagram.com")) ?? pages[0];
-  if (!page) throw new Error("Abra uma aba no Chrome antes de iniciar os workers; nenhuma nova janela será criada.");
+  // Recria apenas uma aba dentro do Chrome dedicado já conectado. Isso preserva
+  // o perfil/sessão existente e evita que a ausência momentânea de uma aba mate
+  // todos os jobs da fila.
+  const page = pages.find((candidate) => candidate.url().includes("instagram.com"))
+    ?? pages[0]
+    ?? await context.newPage();
   page.setDefaultTimeout(15_000);
+  page.setDefaultNavigationTimeout(30_000);
   return page;
 }
 

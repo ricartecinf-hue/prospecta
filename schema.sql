@@ -35,6 +35,7 @@ CREATE TABLE prospecta.leads (
   score           INTEGER DEFAULT 0,       -- 0–100 via Gemini
   score_reason    TEXT,                    -- explicação do score
   is_icp          BOOLEAN,                 -- decisão estruturada retornada pela IA
+  score_breakdown JSONB,                   -- pontos por critério e bloqueio aplicado
   qualified_at    TIMESTAMPTZ,
   
   -- Status no funil
@@ -286,7 +287,7 @@ INSERT INTO prospecta.campaign_config (
     '#terapia', '#saudemental', '#consultoriodepsicologia',
     '#psicoterapia', '#psicologaclinica', '#terapeutaonline'
   ],
-  ARRAY['@psico_manager', '@psicoplanner.app', '@ninsaude'],
+  ARRAY['@psico_manager', '@psicoplanner.app'],
   'Sinapsi — sistema de gestão para psicólogos',
   'https://sinapsi.qszuuz.easypanel.host',
   ARRAY[

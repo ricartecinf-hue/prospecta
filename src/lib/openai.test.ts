@@ -13,6 +13,10 @@ test("reconhece indisponibilidade temporária do Gemini", () => {
   assert.equal(geminiRetryReason({ status: 503, statusText: "UNAVAILABLE" }), "Gemini temporariamente indisponível");
 });
 
+test("reconhece falha transitória de rede com o Gemini", () => {
+  assert.equal(geminiRetryReason(new TypeError("fetch failed")), "conexão temporária com o Gemini indisponível");
+});
+
 test("não mascara erros permanentes do Gemini", () => {
   assert.equal(geminiRetryReason({ status: 400, statusText: "INVALID_ARGUMENT" }), null);
 });

@@ -2,14 +2,18 @@ import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { z } from "zod";
 import { audit, query } from "./db";
 import { env } from "./env";
+import { scoreQualification, type StructuredQualification } from "./qualification-score";
 import type { CampaignConfig, InstagramProfile } from "./types";
 
-const qualificationSchema = z.object({
-  score: z.number().int().min(0).max(100),
-  reason: z.string().max(500),
-  is_icp: z.boolean(),
+const signalSchema = z.object({
+  profession_confirmed: z.boolean(),
+  mental_health_content: z.boolean(),
+  professional_active: z.boolean(),
+  service_mentioned: z.boolean(),
+  personal_profile: z.boolean(),
+  evidence: z.string().max(300),
 });
-export type QualificationResult = z.infer<typeof qualificationSchema>;
+export type QualificationResult = StructuredQualification;
 
 function model() {
   const config = env();
@@ -22,14 +26,24 @@ function model() {
       responseSchema: {
         type: SchemaType.OBJECT,
         properties: {
-          score: { type: SchemaType.INTEGER, description: "Score de adequação ao ICP, de 0 a 100" },
-          reason: { type: SchemaType.STRING, description: "Justificativa em no máximo duas frases" },
-          is_icp: { type: SchemaType.BOOLEAN, description: "Se o perfil pertence ao ICP" },
+          profession_confirmed: { type: SchemaType.BOOLEAN, description: "Profissão-alvo explícita no nome ou bio" },
+          mental_health_content: { type: SchemaType.BOOLEAN, description: "Posts recentes tratam de saúde mental" },
+          professional_active: { type: SchemaType.BOOLEAN, description: "Bio profissional completa e posts regulares" },
+          service_mentioned: { type: SchemaType.BOOLEAN, description: "Menciona atendimento, consultório ou sessão" },
+          personal_profile: { type: SchemaType.BOOLEAN, description: "Perfil pessoal sem vínculo profissional" },
+          evidence: { type: SchemaType.STRING, description: "Evidência objetiva em até duas frases" },
         },
-        required: ["score", "reason", "is_icp"],
+        required: [
+          "profession_confirmed",
+          "mental_health_content",
+          "professional_active",
+          "service_mentioned",
+          "personal_profile",
+          "evidence",
+        ],
       },
     },
-  });
+  }, { timeout: 30_000 });
 }
 
 export function geminiRetryReason(error: unknown) {
@@ -41,6 +55,9 @@ export function geminiRetryReason(error: unknown) {
   }
   if (candidate.status === 503 || /UNAVAILABLE|overloaded/i.test(detail)) {
     return "Gemini temporariamente indisponível";
+  }
+  if (/fetch failed|timeout|aborted/i.test(detail)) {
+    return "conexão temporária com o Gemini indisponível";
   }
   return null;
 }
@@ -69,7 +86,7 @@ export async function qualifyProfile(
 
 ICP: ${campaign.icp_description}
 
-Analise este perfil do Instagram e dê um score de 0 a 100.
+Classifique somente os sinais objetivos abaixo. Não dê uma nota; a pontuação será calculada pelo sistema.
 
 Username: ${profile.username}
 Nome: ${profile.fullName}
@@ -78,16 +95,20 @@ Seguidores: ${profile.followersCount ?? "desconhecido"}
 Posts: ${profile.postsCount ?? "desconhecido"}
 Conteúdo recente: ${profile.recentPosts.join(" | ") || "não disponível"}
 
-Score 0–40: claramente fora do ICP
-Score 41–64: possível mas incerto
-Score 65–84: bom lead
-Score 85–100: lead ideal`;
+Regras:
+- profession_confirmed: true somente se nome ou bio identificar psicólogo(a), terapeuta ou psicanalista.
+- mental_health_content: true somente se os posts recentes tratarem de saúde mental.
+- professional_active: true somente se houver bio profissional completa e indícios de posts regulares.
+- service_mentioned: true se houver atendimento, consultório, sessão, agendamento, pacientes, online ou presencial.
+- personal_profile: true se não houver vínculo profissional identificável.
+- Não presuma profissão a partir de "Dr." ou de conteúdo genérico.`;
 
   await audit("gemini.qualification.before", { username: profile.username, model: config.GEMINI_MODEL });
   const result = await model().generateContent(prompt);
   const raw = result.response.text();
   if (!raw) throw new Error("O Gemini retornou uma resposta vazia.");
-  const parsed = qualificationSchema.parse(JSON.parse(raw));
+  const signals = signalSchema.parse(JSON.parse(raw));
+  const parsed = scoreQualification(profile, signals);
   const inputTokens = result.response.usageMetadata?.promptTokenCount ?? 0;
   const outputTokens = result.response.usageMetadata
     ? result.response.usageMetadata.totalTokenCount - result.response.usageMetadata.promptTokenCount
@@ -105,6 +126,7 @@ Score 85–100: lead ideal`;
     score: parsed.score,
     reason: parsed.reason,
     is_icp: parsed.is_icp,
+    breakdown: parsed.breakdown,
     estimatedCost,
   });
   return parsed;

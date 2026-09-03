@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import { env } from "./env";
 import { claimJob, completeJob, failJob, rescheduleJob, type HandlerResult } from "./job-queue";
 import type { Job, JobKind } from "./types";

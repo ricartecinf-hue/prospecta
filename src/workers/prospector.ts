@@ -2,6 +2,7 @@ import { z } from "zod";
 import { audit, getCampaignConfig, query } from "@/lib/db";
 import { discoverByHashtag, discoverFromFollowers, readProfile } from "@/lib/instagram";
 import { enqueueJob } from "@/lib/job-queue";
+import { filterPsychologyProspect } from "@/lib/prospecting-filter";
 import { runWorker } from "@/lib/worker";
 
 const payloadSchema = z.object({
@@ -24,6 +25,15 @@ runWorker("prospect", async (job) => {
   for (const username of usernames) {
     try {
       const profile = await readProfile(username);
+      const candidate = filterPsychologyProspect(profile);
+      if (!candidate.accepted) {
+        await audit("prospector.profile_filtered", {
+          username: profile.username,
+          source: payload.value,
+          reason: candidate.reason,
+        });
+        continue;
+      }
       const result = await query<{ id: string; inserted: boolean }>(
         `INSERT INTO leads (
            ig_username, full_name, bio, followers_count, following_count, posts_count,

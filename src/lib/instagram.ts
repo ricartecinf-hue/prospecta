@@ -25,7 +25,20 @@ async function text(locator: Locator) {
 }
 
 async function gotoInstagram(page: Page, path: string) {
-  await page.goto(`${IG_ORIGIN}${path}`, { waitUntil: "domcontentloaded" });
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      await page.goto(`${IG_ORIGIN}${path}`, { waitUntil: "domcontentloaded", timeout: 30_000 });
+      lastError = null;
+      break;
+    } catch (error) {
+      lastError = error;
+      const retryable = /ERR_ABORTED|frame.*detached|timeout|Target page.*closed/i.test(String(error));
+      if (!retryable || attempt === 3 || page.isClosed()) throw error;
+      await page.waitForTimeout(1_000 * attempt);
+    }
+  }
+  if (lastError) throw lastError;
   await assertInstagramSession(page);
   await page.waitForTimeout(1_200);
 }

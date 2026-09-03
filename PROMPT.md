@@ -29,7 +29,10 @@ HASHTAGS:
 CONCORRENTES:
   @psico_manager     (37k seguidores — sistema específico para psicólogos)
   @psicoplanner.app  (11k seguidores — app para psicólogas)
-  @ninsaude          (gestão clínica geral, atende psicólogos)
+
+PRÉ-FILTRO:
+  Só persistir perfis cuja profissão-alvo apareça no nome, bio ou @.
+  Fontes amplas de saúde, como plataformas médicas generalistas, não devem ser usadas.
 
 VERIFIED_CLAIMS:
   - Sistema desenvolvido especificamente para psicólogos e terapeutas

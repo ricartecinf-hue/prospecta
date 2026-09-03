@@ -24,6 +24,7 @@ export interface Lead extends TenantScoped {
   score: number;
   score_reason: string | null;
   is_icp: boolean | null;
+  score_breakdown: Record<string, unknown> | null;
   qualified_at: Date | null;
   status: LeadStatus;
   do_not_contact: boolean;
