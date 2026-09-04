@@ -14,7 +14,13 @@ import type { CampaignConfig, Job, Lead } from "@/lib/types";
 
 const payloadSchema = z.object({ leadId: z.string().uuid() });
 
-export const SINAPSI_FIRST_DM_TEXT = "Oi {{first_name}}, tudo bem? Trabalho com bastante profissional de psicologia e criei o Sinapsi pra resolver um problema que ouço muito: gestão do consultório tomando tempo que deveria ser dos pacientes. Agenda, prontuário e financeiro num só lugar. Dá uma olhada 👇";
+export const SINAPSI_FIRST_DM_TEXT = `Oi {{first_name}}, tudo bem? Vi seu perfil e resolvi te enviar esta mensagem.
+Não sei se você já usa algum sistema de gestão para o consultório.
+
+Quero te apresentar o SinaPsi: agenda, prontuário, financeiro, pacientes, IA e gestão clínica trabalhando juntos em um único sistema feito para psicólogos.
+
+Se fizer sentido, posso liberar um acesso gratuito por 10 dias para você conhecer.
+Se não fizer, agradeço sua atenção, peço desculpas pelo incômodo e parabéns pelo seu trabalho.`;
 
 type SqlClient = { query: typeof query };
 
