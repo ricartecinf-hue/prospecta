@@ -1,8 +1,28 @@
+const PROFESSIONAL_LABEL = /^(dr|dra|psi|psicologo|psicologa|psicanalista|terapeuta|neuropsicologo|neuropsicologa|crp)$/iu;
+
+function isProfessionalLabel(value: string) {
+  return PROFESSIONAL_LABEL.test(value.normalize("NFD").replace(/\p{M}/gu, ""));
+}
+
+function nameTokens(value: string) {
+  return value
+    .normalize("NFC")
+    .split(/[\s._|/\\-]+/u)
+    .map((part) => part.replace(/[^\p{L}'’-]/gu, ""))
+    .filter(Boolean);
+}
+
+function displayName(value: string) {
+  return value.charAt(0).toLocaleUpperCase("pt-BR") + value.slice(1).toLocaleLowerCase("pt-BR");
+}
+
 export function firstName(fullName: string | null, username: string) {
-  const parts = (fullName ?? "").trim().split(/\s+/).map((part) => part.replace(/[^\p{L}'-]/gu, "")).filter(Boolean);
-  const titles = /^(dr|dra|psicologo|psicologa|psi)$/iu;
-  const candidate = parts.find((part) => !titles.test(part));
-  return candidate || username.replace(/[._-].*$/, "");
+  const profileParts = nameTokens(fullName ?? "");
+  const profileCandidate = profileParts.find((part) => !isProfessionalLabel(part) && !/^\p{Lu}{2,}$/u.test(part));
+  if (profileCandidate) return displayName(profileCandidate);
+
+  const usernameCandidate = nameTokens(username).find((part) => !isProfessionalLabel(part));
+  return displayName(usernameCandidate || username);
 }
 
 export function renderDmTemplate(template: string, fullName: string | null, username: string) {

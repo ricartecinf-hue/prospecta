@@ -19,8 +19,7 @@ Não sei se você já usa algum sistema de gestão para o consultório.
 
 Quero te apresentar o SinaPsi: agenda, prontuário, financeiro, pacientes, IA e gestão clínica trabalhando juntos em um único sistema feito para psicólogos.
 
-Se fizer sentido, posso liberar um acesso gratuito por 10 dias para você conhecer.
-Se não fizer, agradeço sua atenção, peço desculpas pelo incômodo e parabéns pelo seu trabalho.`;
+Se fizer sentido me avisa, posso liberar um acesso gratuito para você testar sem compromisso.`;
 
 type SqlClient = { query: typeof query };
 

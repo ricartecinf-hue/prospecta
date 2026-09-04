@@ -5,6 +5,9 @@ import { firstName, isOptOut, renderDmTemplate, showsInterest } from "./text";
 test("extrai o primeiro nome e substitui o template", () => {
   assert.equal(firstName("Dra. Ana Souza", "ana.psi"), "Ana");
   assert.equal(renderDmTemplate("Oi {{first_name}}!", "Ana Souza", "ana.psi"), "Oi Ana!");
+  assert.equal(firstName("tamara.psicóloga", "tamara.psicologa"), "Tamara");
+  assert.equal(firstName(null, "psi.alinelevy"), "Alinelevy");
+  assert.equal(firstName("Psicóloga TCC", "tamara.psicologa"), "Tamara");
 });
 
 test("detecta opt-out em português", () => {
