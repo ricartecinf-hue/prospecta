@@ -1,6 +1,16 @@
 import { audit } from "./db";
 import { env } from "./env";
 
+export const HANDOFF_WHATSAPP_NUMBER = "5554981133456";
+export const HANDOFF_EVOLUTION_INSTANCE = "zaplovecrm";
+
+export function assertHandoffChannel() {
+  const config = env();
+  if (config.EVOLUTION_INSTANCE !== HANDOFF_EVOLUTION_INSTANCE) {
+    throw new Error(`Handoff requer a instância Evolution ${HANDOFF_EVOLUTION_INSTANCE}.`);
+  }
+}
+
 export async function sendWhatsApp(number: string, text: string, auditContext: Record<string, unknown> = {}) {
   const config = env();
   if (!config.EVOLUTION_API_URL || !config.EVOLUTION_API_KEY || !config.EVOLUTION_INSTANCE) {

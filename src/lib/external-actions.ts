@@ -1,5 +1,6 @@
 import { audit } from "./db";
 import { env, type AppEnv } from "./env";
+import { getCircuitState } from "./circuit-breaker";
 import type { HandlerResult } from "./job-queue";
 import type { Job } from "./types";
 
@@ -17,6 +18,12 @@ export async function blockDisabledExternalAction(
   job: Pick<Job<unknown>, "id" | "kind">,
   action: ExternalAction,
 ): Promise<HandlerResult | null> {
+  const circuit = await getCircuitState();
+  const pausedUntil = circuit.paused_until ? new Date(circuit.paused_until) : null;
+  if (pausedUntil && pausedUntil.getTime() > Date.now()) {
+    await audit("external_action.paused", { jobId: job.id, kind: job.kind, action, runAfter: pausedUntil.toISOString(), reason: circuit.reason });
+    return { action: "reschedule", runAfter: pausedUntil, reason: "automação pausada pelo circuit breaker" };
+  }
   if (externalActionEnabled(action)) return null;
 
   const runAfter = new Date(Date.now() + 60 * 60 * 1000);

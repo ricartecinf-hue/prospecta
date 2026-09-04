@@ -79,6 +79,14 @@ INSTAGRAM_DMS_ENABLED=true
 WHATSAPP_HANDOFF_ENABLED=false
 ```
 
+Antes de liberar `INSTAGRAM_DMS_ENABLED`, coloque a imagem aprovada do Sinapsi
+em `assets/sinapsi.jpg` (ou configure `SINAPSI_DM_IMAGE_PATH`). A primeira DM
+de psicologia não é enviada sem esse arquivo: o job falha antes de consumir
+cota e registra texto e imagem separadamente para não duplicar o texto em retry.
+
+O handoff, quando liberado, valida o destino `5554981133456` e exige a instância
+Evolution `zaplovecrm`.
+
 Reinicie os workers para ler o novo valor. Comece com uma conta de teste e só ative o handoff quando a Evolution API também estiver validada.
 
 ### Início automático no macOS

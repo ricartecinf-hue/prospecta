@@ -4,8 +4,9 @@ import { audit, query } from "@/lib/db";
 
 const schema = z.object({
   icp_description: z.string().min(10),
-  icp_hashtags: z.array(z.string().min(2)).min(1),
+  icp_hashtags: z.array(z.string().min(2)),
   icp_competitors: z.array(z.string().min(2)),
+  icp_locations: z.array(z.object({ id: z.string().regex(/^\d+$/), name: z.string().min(2) })),
   verified_claims: z.array(z.string().min(5)).min(1),
   dm_template_1: z.string().min(20),
   dm_template_followup: z.string().nullable().optional(),
@@ -23,11 +24,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const data = schema.parse(await request.json());
     const result = await query(
-      `UPDATE campaign_config SET icp_description=$2, icp_hashtags=$3, icp_competitors=$4,
-       verified_claims=$5, dm_template_1=$6, dm_template_followup=$7, whatsapp_number=$8,
-       max_dm_per_day=$9, window_start_hour=$10, window_end_hour=$11, min_score_to_dm=$12,
-       followup_after_hours=$13, active=$14, updated_at=NOW() WHERE id=$1 RETURNING id`,
-      [id, data.icp_description, data.icp_hashtags, data.icp_competitors, data.verified_claims,
+      `UPDATE campaign_config SET icp_description=$2, icp_hashtags=$3, icp_competitors=$4, icp_locations=$5::jsonb,
+       verified_claims=$6, dm_template_1=$7, dm_template_followup=$8, whatsapp_number=$9,
+       max_dm_per_day=$10, window_start_hour=$11, window_end_hour=$12, min_score_to_dm=$13,
+       followup_after_hours=$14, active=$15, updated_at=NOW() WHERE id=$1 RETURNING id`,
+      [id, data.icp_description, data.icp_hashtags, data.icp_competitors, JSON.stringify(data.icp_locations), data.verified_claims,
         data.dm_template_1, data.dm_template_followup || null, data.whatsapp_number,
         data.max_dm_per_day, data.window_start_hour, data.window_end_hour, data.min_score_to_dm,
         data.followup_after_hours, data.active],

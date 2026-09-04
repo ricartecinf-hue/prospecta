@@ -1,6 +1,6 @@
 import { audit, query, transaction } from "./db";
 
-interface CircuitState {
+export interface CircuitState {
   consecutive_errors: number;
   paused_until: string | null;
   reason: string | null;

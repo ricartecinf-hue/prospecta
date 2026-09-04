@@ -12,6 +12,14 @@ export function ConfigForm({ campaign }: { campaign: CampaignConfig }) {
     setSaving(true);
     setMessage("");
     const data = new FormData(event.currentTarget);
+    let locations: unknown;
+    try {
+      locations = JSON.parse(String(data.get("icp_locations") ?? "[]"));
+    } catch {
+      setSaving(false);
+      setMessage("Localizações devem estar em JSON válido.");
+      return;
+    }
     const response = await fetch(`/api/config/${campaign.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -19,6 +27,7 @@ export function ConfigForm({ campaign }: { campaign: CampaignConfig }) {
         icp_description: data.get("icp_description"),
         icp_hashtags: String(data.get("icp_hashtags") ?? "").split(/[\s,]+/).filter(Boolean),
         icp_competitors: String(data.get("icp_competitors") ?? "").split(/[\s,]+/).filter(Boolean),
+        icp_locations: locations,
         verified_claims: String(data.get("verified_claims") ?? "").split("\n").map((item) => item.trim()).filter(Boolean),
         dm_template_1: data.get("dm_template_1"),
         dm_template_followup: data.get("dm_template_followup"),
@@ -48,6 +57,9 @@ export function ConfigForm({ campaign }: { campaign: CampaignConfig }) {
         </label>
         <label className="block text-sm font-medium text-slate-700">Concorrentes
           <textarea name="icp_competitors" defaultValue={campaign.icp_competitors.join(" ")} rows={4} className={inputClass} />
+        </label>
+        <label className="block text-sm font-medium text-slate-700">Localizações do Instagram (JSON)
+          <textarea name="icp_locations" defaultValue={JSON.stringify(campaign.icp_locations, null, 2)} rows={4} className={inputClass} />
         </label>
       </div>
       <label className="block text-sm font-medium text-slate-700">Claims verificados — um por linha

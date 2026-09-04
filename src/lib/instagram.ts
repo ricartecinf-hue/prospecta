@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import type { Locator, Page } from "playwright";
 import { assertInstagramSession, getInstagramPage, withChromeLock } from "./chrome";
 import { audit } from "./db";
@@ -257,10 +258,22 @@ async function discoverFromFollowersUnlocked(username: string, limit = 20) {
   }
 }
 
-async function sendDirectMessageUnlocked(username: string, body: string, auditContext: Record<string, unknown> = {}) {
+export interface DirectMessageOptions {
+  imagePath?: string;
+  skipText?: boolean;
+}
+
+async function sendDirectMessageUnlocked(
+  username: string,
+  body: string,
+  auditContext: Record<string, unknown> = {},
+  options: DirectMessageOptions = {},
+) {
   const clean = normalizeUsername(username);
   const page = await getInstagramPage();
-  await audit("instagram.dm.before", { username: clean, body, ...auditContext });
+  const imagePath = options.imagePath;
+  if (imagePath && !existsSync(imagePath)) throw new Error(`Imagem da DM não encontrada: ${imagePath}`);
+  await audit("instagram.dm.before", { username: clean, body, hasImage: Boolean(imagePath), ...auditContext });
   try {
     await gotoInstagram(page, `/${clean}/`);
     const messageButton = page.getByRole("button", { name: /mensagem|message/i }).first();
@@ -268,14 +281,30 @@ async function sendDirectMessageUnlocked(username: string, body: string, auditCo
     await assertInstagramSession(page);
     const composer = page.locator('textarea[placeholder], div[contenteditable="true"][role="textbox"]').last();
     await composer.waitFor({ state: "visible" });
-    await composer.fill(body).catch(async () => {
-      await composer.click();
-      await page.keyboard.type(body);
-    });
-    await page.keyboard.press("Enter");
-    await audit("instagram.dm.after", { username: clean, ok: true, ...auditContext });
+    if (!options.skipText) {
+      await composer.fill(body).catch(async () => {
+        await composer.click();
+        await page.keyboard.type(body);
+      });
+      await page.keyboard.press("Enter");
+      await audit("instagram.dm.text.after", { username: clean, ok: true, ...auditContext });
+    }
+    if (imagePath) {
+      await audit("instagram.dm.image.before", { username: clean, imagePath, ...auditContext });
+      try {
+        const fileInput = page.locator('input[type="file"]').last();
+        await fileInput.setInputFiles(imagePath);
+        const sendImage = page.getByRole("button", { name: /enviar|send/i }).last();
+        await sendImage.click({ timeout: 8_000 }).catch(async () => page.keyboard.press("Enter"));
+        await audit("instagram.dm.image.after", { username: clean, imagePath, ok: true, ...auditContext });
+      } catch (error) {
+        await audit("instagram.dm.image.after", { username: clean, imagePath, ok: false, error: String(error), ...auditContext });
+        throw error;
+      }
+    }
+    await audit("instagram.dm.after", { username: clean, ok: true, hasImage: Boolean(imagePath), ...auditContext });
   } catch (error) {
-    await audit("instagram.dm.after", { username: clean, ok: false, error: String(error), ...auditContext });
+    await audit("instagram.dm.after", { username: clean, ok: false, hasImage: Boolean(imagePath), error: String(error), ...auditContext });
     throw error;
   }
 }
@@ -321,8 +350,12 @@ export const discoverFromFollowers = (username: string, limit = 20) =>
 export const discoverByLocation = (locationId: string, locationName: string, limit = 20) =>
   withChromeLock(() => discoverByLocationUnlocked(locationId, locationName, limit));
 
-export const sendDirectMessage = (username: string, body: string, auditContext: Record<string, unknown> = {}) =>
-  withChromeLock(() => sendDirectMessageUnlocked(username, body, auditContext));
+export const sendDirectMessage = (
+  username: string,
+  body: string,
+  auditContext: Record<string, unknown> = {},
+  options: DirectMessageOptions = {},
+) => withChromeLock(() => sendDirectMessageUnlocked(username, body, auditContext, options));
 
 export const readInboxReplies = (limit = 30) =>
   withChromeLock(() => readInboxRepliesUnlocked(limit));

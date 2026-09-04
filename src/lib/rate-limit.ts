@@ -2,7 +2,7 @@ import { transaction } from "./db";
 
 export type DmReservation = { allowed: true; nextAllowedAt: Date } | { allowed: false; retryAt: Date; reason: "daily_limit" | "interval" };
 
-export async function reserveDmSlot(maxPerDay: number, niche: string, minSeconds = 90, maxSeconds = 240): Promise<DmReservation> {
+export async function reserveDmSlot(maxPerDay: number, _niche: string, minSeconds = 90, maxSeconds = 240): Promise<DmReservation> {
   return transaction(async (client) => {
     // Trava única: é a mesma sessão do Chrome/Instagram enviando por todos os nichos,
     // então o intervalo mínimo entre DMs precisa ser global, não por nicho.
@@ -16,10 +16,11 @@ export async function reserveDmSlot(maxPerDay: number, niche: string, minSeconds
       return { allowed: false, retryAt: nextDmAt, reason: "interval" };
     }
 
-    // Contador diário separado por nicho — cada campanha respeita seu próprio max_dm_per_day.
+    // Uma única conta do Instagram atende todos os nichos; os 30 envios/dia são
+    // globais, nunca uma cota independente por campanha.
     const rateResult = await client.query<{ allowed: boolean }>(
       "SELECT increment_rate_limit($2, $1) AS allowed",
-      [maxPerDay, `dm_total:${niche}`],
+      [maxPerDay, "dm_total"],
     );
     if (!rateResult.rows[0]?.allowed) {
       const retry = await client.query<{ retry_at: Date }>(

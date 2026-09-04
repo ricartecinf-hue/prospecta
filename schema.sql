@@ -301,7 +301,7 @@ INSERT INTO prospecta.campaign_config (
     'R$67/mês com suporte incluso',
     'Funciona para atendimento presencial e online'
   ],
-  'Oi {{first_name}}! Vi seu trabalho aqui no Instagram, muito bonito. Tenho um sistema de gestão feito especificamente para psicólogos — agenda, prontuários e financeiro tudo integrado, por R$67/mês. Posso te mostrar como funciona em 5 minutos?',
+  'Oi {{first_name}}, tudo bem? Trabalho com bastante profissional de psicologia e criei o Sinapsi pra resolver um problema que ouço muito: gestão do consultório tomando tempo que deveria ser dos pacientes. Agenda, prontuário e financeiro num só lugar. Dá uma olhada 👇',
   'Oi {{first_name}}, tudo bem? Passei aqui de novo — desenvolvi o Sinapsi pra facilitar a gestão do consultório de psicólogos e acho que pode te ajudar bastante. Sem compromisso, quer dar uma olhada rápida?',
   '5554981133456',
   30,
