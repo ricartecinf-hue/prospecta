@@ -334,7 +334,7 @@ INSERT INTO prospecta.campaign_config (
     '#clinicamedica', '#consultoriomedico', '#medico', '#florianopolis',
     '#joinville', '#blumenau', '#medicoempreendedor', '#medicosonline'
   ],
-  ARRAY['@dr.matches', '@medicinadesucesso', '@dr.financas'],
+  ARRAY['@crm.sc', '@medicinadesucesso', '@dr.financas'],
   'Evento presencial de vendas e estratégias para médicos — Florianópolis',
   NULL,
   ARRAY[]::text[],

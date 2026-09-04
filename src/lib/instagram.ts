@@ -130,6 +130,11 @@ async function discoverByHashtagUnlocked(hashtag: string, limit = 20) {
   await audit("instagram.hashtag_fetch.before", { hashtag: clean, limit });
   try {
     await gotoInstagram(page, `/explore/tags/${encodeURIComponent(clean)}/`);
+    // O Instagram passou a redirecionar /explore/tags/X/ para /explore/search/keyword/?q=%23X,
+    // uma rota que popula o grid de posts via fetch assíncrono — mais lenta que a página de
+    // hashtag clássica. O wait fixo de gotoInstagram não é suficiente; sem esperar ativamente
+    // pelo seletor, a leitura roda antes do conteúdo chegar e sempre retorna vazio.
+    await page.locator('a[href*="/p/"], a[href*="/reel/"]').first().waitFor({ state: "attached", timeout: 8_000 }).catch(() => {});
     const links = await page.locator('a[href*="/p/"], a[href*="/reel/"]').evaluateAll((anchors) =>
       [...new Set(anchors.map((anchor) => (anchor as HTMLAnchorElement).href))],
     );
