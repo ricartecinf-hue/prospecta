@@ -332,7 +332,7 @@ INSERT INTO prospecta.campaign_config (
   'medico',
   'Médico(a) com consultório ou clínica própria, perfil ativo no Instagram, entre 1.000 e 100.000 seguidores, localizado em Florianópolis, São José, Palhoça, Biguaçu, Joinville ou Blumenau (confirmado pela bio ou por posts com geolocalização), que posta sobre medicina, procedimentos, o dia a dia do consultório ou vida profissional, com sinais de empreendedorismo (menciona equipe, clínica própria, expansão, gestão).',
   ARRAY[]::text[],
-  ARRAY['@crm.sc'],
+  ARRAY[]::text[],
   '[
     {"id":"109351455749641","name":"Florianópolis"},
     {"id":"109342319085733","name":"São José SC"},
