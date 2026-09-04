@@ -37,12 +37,18 @@ export interface Lead extends TenantScoped {
   updated_at: Date;
 }
 
+export interface InstagramLocationSource {
+  id: string;
+  name: string;
+}
+
 export interface CampaignConfig extends TenantScoped {
   id: string;
   niche: string;
   icp_description: string;
   icp_hashtags: string[];
   icp_competitors: string[];
+  icp_locations: InstagramLocationSource[];
   product_name: string;
   product_url: string | null;
   verified_claims: string[];

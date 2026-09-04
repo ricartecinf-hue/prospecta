@@ -1,18 +1,30 @@
 import { z } from "zod";
 import { audit, getCampaignConfig, query } from "@/lib/db";
-import { discoverByHashtag, discoverFromFollowers, InstagramProtectionError, readProfile } from "@/lib/instagram";
+import {
+  discoverByHashtag,
+  discoverByLocation,
+  discoverFromFollowers,
+  InstagramProtectionError,
+  readProfile,
+} from "@/lib/instagram";
 import { enqueueJob } from "@/lib/job-queue";
 import { filterProspectByNiche } from "@/lib/prospecting-filter";
 import { getProspectingAvailability, pauseProspecting, reserveProspectingVisit } from "@/lib/prospecting-safety";
 import { runWorker } from "@/lib/worker";
 
 const payloadSchema = z.object({
-  sourceKind: z.enum(["hashtag", "followers"]),
+  sourceKind: z.enum(["hashtag", "followers", "location"]),
   value: z.string().min(1),
+  locationName: z.string().min(1).optional(),
   niche: z.string().default("psicologo"),
   limit: z.number().int().min(1).max(100).default(20),
   usernames: z.array(z.string()).optional(),
   cursor: z.number().int().min(0).default(0),
+  runOnce: z.boolean().default(false),
+}).superRefine((payload, context) => {
+  if (payload.sourceKind === "location" && !payload.locationName) {
+    context.addIssue({ code: "custom", path: ["locationName"], message: "locationName é obrigatório para fontes por localização" });
+  }
 });
 
 const wait = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -37,9 +49,13 @@ runWorker("prospect", async (job) => {
   let usernames = payload.usernames;
   if (!usernames) {
     try {
-      usernames = payload.sourceKind === "hashtag"
-        ? await discoverByHashtag(payload.value, payload.limit)
-        : await discoverFromFollowers(payload.value, payload.limit);
+      if (payload.sourceKind === "hashtag") {
+        usernames = await discoverByHashtag(payload.value, payload.limit);
+      } else if (payload.sourceKind === "followers") {
+        usernames = await discoverFromFollowers(payload.value, payload.limit);
+      } else {
+        usernames = await discoverByLocation(payload.value, payload.locationName!, payload.limit);
+      }
     } catch (error) {
       if (error instanceof InstagramProtectionError || /\b429\b|captcha/i.test(String(error))) {
         const runAfter = await pauseProspecting(String(error));
@@ -49,17 +65,20 @@ runWorker("prospect", async (job) => {
     }
   }
 
+  const source = payload.sourceKind === "location"
+    ? `${payload.value}:${payload.locationName ?? "localização"}`
+    : payload.value;
   let inserted = 0;
   for (let cursor = payload.cursor; cursor < usernames.length; cursor += 1) {
     const username = usernames[cursor];
-    let permit = await reserveProspectingVisit({ username, source: payload.value, jobId: job.id });
+    let permit = await reserveProspectingVisit({ username, source, jobId: job.id });
     if (!permit.allowed && permit.reason === "visit_interval") {
       await wait(Math.max(0, permit.runAfter.getTime() - Date.now()));
-      permit = await reserveProspectingVisit({ username, source: payload.value, jobId: job.id });
+      permit = await reserveProspectingVisit({ username, source, jobId: job.id });
     }
     if (!permit.allowed) {
       await saveContinuation(job.id, usernames, cursor);
-      await audit("prospector.batch_deferred", { source: payload.value, cursor, reason: permit.reason, runAfter: permit.runAfter });
+      await audit("prospector.batch_deferred", { source, cursor, reason: permit.reason, runAfter: permit.runAfter });
       return { action: "reschedule", runAfter: permit.runAfter, reason: permit.reason };
     }
     try {
@@ -68,7 +87,7 @@ runWorker("prospect", async (job) => {
       if (!candidate.accepted) {
         await audit("prospector.profile_filtered", {
           username: profile.username,
-          source: payload.value,
+          source,
           reason: candidate.reason,
         });
         continue;
@@ -95,7 +114,7 @@ runWorker("prospect", async (job) => {
           profile.username, profile.fullName, profile.bio, profile.followersCount,
           profile.followingCount, profile.postsCount, profile.profilePicUrl,
           profile.whatsapp, profile.email, profile.igProfileUrl, profile.recentPosts,
-          campaign.niche, `${payload.sourceKind}:${payload.value}`,
+          campaign.niche, `${payload.sourceKind}:${source}`,
         ],
       );
       if (result.rows[0].inserted) {
@@ -108,12 +127,19 @@ runWorker("prospect", async (job) => {
         await saveContinuation(job.id, usernames, cursor);
         return { action: "reschedule", runAfter, reason: "proteção do Instagram acionada" };
       }
-      await audit("prospector.profile_skipped", { username, source: payload.value, error: String(error) });
+      await audit("prospector.profile_skipped", { username, source, error: String(error) });
     }
   }
 
   await query("UPDATE jobs SET payload = payload - 'usernames' - 'cursor', updated_at = NOW() WHERE id = $1", [job.id]);
-  await audit("prospector.batch_completed", { source: payload.value, discovered: usernames.length, inserted });
+  await audit("prospector.batch_completed", {
+    jobId: job.id,
+    source,
+    discovered: usernames.length,
+    inserted,
+    runOnce: payload.runOnce,
+  });
+  if (payload.runOnce) return { action: "complete" };
   return {
     action: "reschedule",
     runAfter: new Date(Date.now() + 24 * 60 * 60 * 1000),

@@ -141,6 +141,7 @@ CREATE TABLE prospecta.campaign_config (
   icp_description   TEXT NOT NULL,
   icp_hashtags      TEXT[] NOT NULL DEFAULT '{}',
   icp_competitors   TEXT[] NOT NULL DEFAULT '{}',  -- @handles dos concorrentes
+  icp_locations     JSONB NOT NULL DEFAULT '[]'::jsonb, -- [{"id":"...","name":"..."}]
   
   -- Produto sendo ofertado
   product_name      TEXT NOT NULL,
@@ -317,6 +318,7 @@ INSERT INTO prospecta.campaign_config (
   icp_description,
   icp_hashtags,
   icp_competitors,
+  icp_locations,
   product_name,
   product_url,
   verified_claims,
@@ -329,12 +331,14 @@ INSERT INTO prospecta.campaign_config (
 ) VALUES (
   'medico',
   'Médico(a) com consultório ou clínica própria, perfil ativo no Instagram, entre 1.000 e 100.000 seguidores, localizado em Florianópolis, São José, Palhoça, Biguaçu, Joinville ou Blumenau (confirmado pela bio ou por posts com geolocalização), que posta sobre medicina, procedimentos, o dia a dia do consultório ou vida profissional, com sinais de empreendedorismo (menciona equipe, clínica própria, expansão, gestão).',
-  ARRAY[
-    '#medicodeflorianopolis', '#medicosc', '#medicinasc', '#medicobrasileiro',
-    '#clinicamedica', '#consultoriomedico', '#medico', '#florianopolis',
-    '#joinville', '#blumenau', '#medicoempreendedor', '#medicosonline'
-  ],
-  ARRAY['@crm.sc', '@medicinadesucesso', '@dr.financas'],
+  ARRAY[]::text[],
+  ARRAY['@crm.sc'],
+  '[
+    {"id":"109351455749641","name":"Florianópolis"},
+    {"id":"109342319085733","name":"São José SC"},
+    {"id":"107478147335563","name":"Joinville SC"},
+    {"id":"1978400505720839","name":"Blumenau SC"}
+  ]'::jsonb,
   'Evento presencial de vendas e estratégias para médicos — Florianópolis',
   NULL,
   ARRAY[]::text[],

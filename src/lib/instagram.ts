@@ -17,6 +17,26 @@ function normalizeUsername(value: string) {
   return value.trim().replace(/^@/, "").replace(/\/$/, "").toLowerCase();
 }
 
+export function hashtagSearchPath(hashtag: string) {
+  const clean = hashtag.trim().replace(/^#+/, "");
+  return `/explore/search/keyword/?q=${encodeURIComponent(`#${clean}`)}`;
+}
+
+export function locationExplorePath(locationId: string) {
+  const clean = locationId.trim();
+  if (!/^\d+$/.test(clean)) throw new Error(`location_id inválido: ${locationId}`);
+  return `/explore/locations/${clean}/`;
+}
+
+function normalizePlaceText(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+export function locationPageMatchesCity(pageText: string, locationName: string) {
+  const city = locationName.trim().replace(/\s+(?:sc|santa catarina)$/i, "");
+  return city.length > 0 && normalizePlaceText(pageText).includes(normalizePlaceText(city));
+}
+
 export function parseCompactNumber(value: string | null): number | null {
   if (!value) return null;
   const normalized = value.toLowerCase().replace(/\s/g, "");
@@ -124,25 +144,75 @@ async function usernamesFromPostLinks(page: Page, links: string[], limit: number
   return [...usernames];
 }
 
+async function collectPostLinksFromVirtualizedGrid(page: Page, limit: number) {
+  const selector = 'main a[href*="/p/"], main a[href*="/reel/"]';
+  await page.locator(selector).first().waitFor({ state: "attached", timeout: 12_000 });
+
+  // Os grids de busca e localização são virtualizados: no primeiro frame há
+  // poucos posts e os nós antigos somem do DOM durante o scroll. Acumulamos os
+  // hrefs entre renderizações e buscamos uma folga para compensar autores
+  // repetidos antes de abrir cada post.
+  const target = Math.min(Math.max(limit * 2, 24), 200);
+  const links = new Set<string>();
+  let unchangedPasses = 0;
+
+  for (let attempt = 0; attempt < 8 && links.size < target && unchangedPasses < 2; attempt += 1) {
+    const before = links.size;
+    const hrefs = await page.locator(selector).evaluateAll((anchors) => anchors
+      .map((anchor) => (anchor as HTMLAnchorElement).href)
+      .filter((href) => /^https:\/\/www\.instagram\.com\/(?:[A-Za-z0-9._]+\/)?(?:p|reel)\/[A-Za-z0-9_-]+\/?/.test(href)));
+    for (const href of hrefs) links.add(href);
+    unchangedPasses = links.size === before ? unchangedPasses + 1 : 0;
+    if (links.size >= target) break;
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.waitForTimeout(1_000);
+  }
+
+  return [...links];
+}
+
 async function discoverByHashtagUnlocked(hashtag: string, limit = 20) {
-  const clean = hashtag.replace(/^#/, "");
+  const clean = hashtag.trim().replace(/^#+/, "");
   const page = await getInstagramPage();
   await audit("instagram.hashtag_fetch.before", { hashtag: clean, limit });
   try {
-    await gotoInstagram(page, `/explore/tags/${encodeURIComponent(clean)}/`);
-    // O Instagram passou a redirecionar /explore/tags/X/ para /explore/search/keyword/?q=%23X,
-    // uma rota que popula o grid de posts via fetch assíncrono — mais lenta que a página de
-    // hashtag clássica. O wait fixo de gotoInstagram não é suficiente; sem esperar ativamente
-    // pelo seletor, a leitura roda antes do conteúdo chegar e sempre retorna vazio.
-    await page.locator('a[href*="/p/"], a[href*="/reel/"]').first().waitFor({ state: "attached", timeout: 8_000 }).catch(() => {});
-    const links = await page.locator('a[href*="/p/"], a[href*="/reel/"]').evaluateAll((anchors) =>
-      [...new Set(anchors.map((anchor) => (anchor as HTMLAnchorElement).href))],
-    );
+    await gotoInstagram(page, hashtagSearchPath(clean));
+    const links = await collectPostLinksFromVirtualizedGrid(page, limit);
     const usernames = await usernamesFromPostLinks(page, links, limit);
-    await audit("instagram.hashtag_fetch.after", { hashtag: clean, found: usernames.length });
+    await audit("instagram.hashtag_fetch.after", {
+      hashtag: clean,
+      found: usernames.length,
+      postLinks: links.length,
+      route: "keyword",
+    });
     return usernames;
   } catch (error) {
     await audit("instagram.hashtag_fetch.after", { hashtag: clean, ok: false, error: String(error) });
+    throw error;
+  }
+}
+
+async function discoverByLocationUnlocked(locationId: string, locationName: string, limit = 20) {
+  const clean = locationId.trim();
+  const page = await getInstagramPage();
+  await audit("instagram.location_fetch.before", { locationId: clean, locationName, limit });
+  try {
+    await gotoInstagram(page, locationExplorePath(clean));
+    const pageText = await page.locator("main").innerText().catch(() => "");
+    if (!locationPageMatchesCity(pageText, locationName)) {
+      throw new Error(`location_id ${clean} não corresponde a ${locationName} no Instagram.`);
+    }
+    const links = await collectPostLinksFromVirtualizedGrid(page, limit);
+    const usernames = await usernamesFromPostLinks(page, links, limit);
+    await audit("instagram.location_fetch.after", {
+      locationId: clean,
+      locationName,
+      found: usernames.length,
+      postLinks: links.length,
+    });
+    return usernames;
+  } catch (error) {
+    await audit("instagram.location_fetch.after", { locationId: clean, ok: false, error: String(error) });
     throw error;
   }
 }
@@ -153,6 +223,9 @@ async function discoverFromFollowersUnlocked(username: string, limit = 20) {
   await audit("instagram.followers_fetch.before", { username: clean, limit });
   try {
     await gotoInstagram(page, `/${clean}/`);
+    if (await page.getByText(/página não está disponível|page isn't available|voltar para o Instagram/i).count()) {
+      throw new Error(`Perfil fonte @${clean} indisponível.`);
+    }
     const link = page.getByRole("link", { name: /seguidores|followers/i }).first();
     await link.click();
     const dialog = page.locator('div[role="dialog"]').last();
@@ -244,6 +317,9 @@ export const discoverByHashtag = (hashtag: string, limit = 20) =>
 
 export const discoverFromFollowers = (username: string, limit = 20) =>
   withChromeLock(() => discoverFromFollowersUnlocked(username, limit));
+
+export const discoverByLocation = (locationId: string, locationName: string, limit = 20) =>
+  withChromeLock(() => discoverByLocationUnlocked(locationId, locationName, limit));
 
 export const sendDirectMessage = (username: string, body: string, auditContext: Record<string, unknown> = {}) =>
   withChromeLock(() => sendDirectMessageUnlocked(username, body, auditContext));

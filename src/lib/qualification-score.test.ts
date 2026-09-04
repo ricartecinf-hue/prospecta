@@ -150,6 +150,45 @@ test("nicho medico: sinal da IA sozinho não confirma localização sem menção
   assert.equal(result.breakdown.location_confirmed, 0);
   assert.equal(result.is_icp, false, "sem localização confirmada, is_icp deve ser false mesmo com score alto");
   assert.ok(result.score >= 65, "score alto o suficiente se não fosse pela localização — prova que só a localização barrou o is_icp");
+  assert.match(result.reason, /localização obrigatória não confirmada/);
+});
+
+test("nicho medico: post pode confirmar uma das cidades-alvo explicitamente", () => {
+  const result = scoreQualification(
+    profile({
+      fullName: "Carlos — Médico",
+      bio: "Médico clínico geral. CRM 00000.",
+      recentPosts: ["Hoje foi dia de atendimento no consultório em Joinville."],
+    }),
+    signals({ location_confirmed: false, practice_ownership: true }),
+    "medico",
+  );
+  assert.equal(result.breakdown.location_confirmed, 25);
+  assert.equal(result.is_icp, true);
+});
+
+test("nicho medico: cidade somente no nome não substitui menção na bio ou nos posts", () => {
+  const result = scoreQualification(
+    profile({
+      fullName: "Carlos Médico de Blumenau",
+      bio: "Médico clínico geral. CRM 00000. Fundador da minha clínica.",
+      recentPosts: ["Rotina de atendimentos."],
+    }),
+    signals({ location_confirmed: true, practice_ownership: true }),
+    "medico",
+  );
+  assert.equal(result.breakdown.location_confirmed, 0);
+  assert.equal(result.is_icp, false);
+});
+
+test("nicho medico: apelido da cidade não substitui menção explícita a Florianópolis", () => {
+  const result = scoreQualification(
+    profile({ bio: "Médico com consultório em Floripa.", recentPosts: [] }),
+    signals({ location_confirmed: true, practice_ownership: true }),
+    "medico",
+  );
+  assert.equal(result.breakdown.location_confirmed, 0);
+  assert.equal(result.is_icp, false);
 });
 
 test("nicho medico: 'Santa Catarina'/'SC' genérico não conta como cidade confirmada", () => {
