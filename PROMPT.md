@@ -51,11 +51,10 @@ DM_1:
   hoje tu usa algum sistema para organizar teus pacientes, prontuários,
   agenda e financeiro do consultório? Ou faz isso de outra forma?
 
-DM_FOLLOWUP (após 48h sem resposta):
-  Oi {{first_name}}, passando só para não deixar minha pergunta perdida:
-  hoje você centraliza agenda, prontuários e financeiro ou ainda usa
-  ferramentas separadas? Se quiser, te mostro o Sinapsi por aqui — sem
-  compromisso.
+DM_FOLLOWUP (após 3h sem resposta):
+  Oi, {{first_name}}! Passando só pra retomar minha mensagem 😊 Fiquei
+  curioso pra saber como tu organiza hoje essa parte do consultório. Usa
+  algum sistema ou vai fazendo com agenda, planilha e outras ferramentas?
 
 WHATSAPP_HANDOFF:  5554981133456
 
@@ -64,7 +63,7 @@ LIMITES:
   Intervalo entre DMs:  180–240 segundos (aleatório)
   Janela de operação:   09:00–20:00 (horário de Brasília)
   Score mínimo p/ DM:   65
-  Follow-up após:       48 horas
+  Follow-up após:       3 horas
 ```
 
 ---

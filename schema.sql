@@ -160,7 +160,7 @@ CREATE TABLE prospecta.campaign_config (
   window_start_hour INTEGER NOT NULL DEFAULT 9 CHECK (window_start_hour BETWEEN 9 AND 19),
   window_end_hour   INTEGER NOT NULL DEFAULT 20 CHECK (window_end_hour BETWEEN 10 AND 20),
   min_score_to_dm   INTEGER NOT NULL DEFAULT 65,  -- só DM acima desse score
-  followup_after_hours INTEGER NOT NULL DEFAULT 48,
+  followup_after_hours INTEGER NOT NULL DEFAULT 3,
   
   active            BOOLEAN NOT NULL DEFAULT true,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -302,7 +302,7 @@ INSERT INTO prospecta.campaign_config (
     'Funciona para atendimento presencial e online'
   ],
   'Oi, {{first_name}}! Tudo bem? Vi teu perfil e fiquei com uma curiosidade: hoje tu usa algum sistema para organizar teus pacientes, prontuários, agenda e financeiro do consultório? Ou faz isso de outra forma?',
-  'Oi {{first_name}}, passando só para não deixar minha pergunta perdida: hoje você centraliza agenda, prontuários e financeiro ou ainda usa ferramentas separadas? Se quiser, te mostro o Sinapsi por aqui — sem compromisso.',
+  'Oi, {{first_name}}! Passando só pra retomar minha mensagem 😊 Fiquei curioso pra saber como tu organiza hoje essa parte do consultório. Usa algum sistema ou vai fazendo com agenda, planilha e outras ferramentas?',
   '5554981133456',
   30,
   65
