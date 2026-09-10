@@ -33,11 +33,25 @@ function ContactLink({ href, label, children }: { href: string; label: string; c
 }
 
 function InstagramIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.4" cy="6.7" r=".9" className="fill-current stroke-none" /></svg>;
+  return (
+    <span aria-hidden="true" className="inline-flex h-5 w-5 items-center justify-center rounded-[5px] bg-gradient-to-tr from-amber-400 via-pink-500 to-purple-600 text-white">
+      <svg viewBox="0 0 24 24" className="h-[15px] w-[15px] fill-none stroke-current stroke-2">
+        <rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5.2" />
+        <circle cx="12" cy="12" r="4.1" />
+        <circle cx="17.4" cy="6.7" r="1" className="fill-current stroke-none" />
+      </svg>
+    </span>
+  );
 }
 
 function WhatsAppIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]"><path d="M20 11.5a8 8 0 0 1-11.7 7.1L4 20l1.4-4.1A8 8 0 1 1 20 11.5Z" /><path d="M9.3 8.2c.2-.5.5-.5.8-.5h.4c.2 0 .4.1.5.4l.8 1.8c.1.2.1.4 0 .6l-.5.7c.5 1 1.3 1.8 2.3 2.3l.7-.5c.2-.1.4-.1.6 0l1.8.8c.3.1.4.3.4.5v.4c0 .3 0 .6-.5.8-.5.2-1.4.3-2.6-.3-1-.5-2-1.3-2.8-2.1-.8-.8-1.6-1.8-2.1-2.8-.6-1.2-.5-2.1-.3-2.6Z" /></svg>;
+  return (
+    <span aria-hidden="true" className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#25D366] text-white">
+      <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+        <path d="M12.05 3.2a8.65 8.65 0 0 0-7.48 13l-1.13 4.12 4.22-1.1a8.66 8.66 0 1 0 4.39-16.02Zm0 15.75a7.1 7.1 0 0 1-3.62-.99l-.26-.15-2.5.66.67-2.43-.17-.27a7.1 7.1 0 1 1 5.88 3.18Zm3.9-5.31c-.22-.11-1.27-.63-1.47-.7-.2-.08-.34-.12-.48.1-.14.22-.55.7-.68.84-.12.15-.25.17-.46.06-.22-.1-.91-.33-1.73-1.07a6.46 6.46 0 0 1-1.2-1.49c-.13-.21-.01-.33.1-.44.1-.1.21-.25.32-.38.11-.12.14-.21.22-.36.07-.14.03-.27-.02-.38-.05-.1-.48-1.16-.66-1.6-.17-.41-.35-.36-.48-.36h-.41c-.15 0-.38.06-.58.27-.2.22-.76.75-.76 1.82 0 1.08.78 2.12.9 2.27.1.14 1.54 2.35 3.73 3.3.52.22.93.36 1.25.46.52.16 1 .14 1.37.08.42-.06 1.28-.53 1.46-1.03.18-.5.18-.92.13-1.02-.06-.09-.2-.14-.42-.25Z" />
+      </svg>
+    </span>
+  );
 }
 
 export function LeadRow({ lead }: { lead: Lead }) {

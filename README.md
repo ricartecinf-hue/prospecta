@@ -42,7 +42,7 @@ No macOS, inicie o Chrome dedicado com:
 npm run jobs:local
 ```
 
-Na primeira execução, o diagnóstico pedirá que você faça login manualmente no Instagram e deixe uma aba aberta. Rode o mesmo comando outra vez depois do login. O perfil persistente fica em `.chrome-prospecta`, então a sessão será reutilizada após reinícios. O Prospecta chama somente `chromium.connectOverCDP(CHROME_CDP_URL)`; não tenta login automático. A porta CDP fica presa a `127.0.0.1` e nunca deve ser publicada na internet.
+Na primeira execução, o diagnóstico abre uma aba do Instagram no Chrome dedicado e pede que você faça login manualmente, se necessário. Rode o mesmo comando outra vez depois do login. Em reinícios posteriores, o preflight recria a aba caso ela tenha sido fechada, sempre dentro do Chrome dedicado e sem tentar login automático. O perfil persistente fica em `.chrome-prospecta`, então a sessão será reutilizada. O Prospecta chama somente o Chrome via CDP em `CHROME_CDP_URL`; a porta fica presa a `127.0.0.1` e nunca deve ser publicada na internet.
 
 Se a tela de login aparecer depois, todos os jobs são pausados e um evento `instagram.session_expired` é gravado. Após refazer o login, use “Já fiz login — reativar” no dashboard.
 
@@ -79,10 +79,9 @@ INSTAGRAM_DMS_ENABLED=true
 WHATSAPP_HANDOFF_ENABLED=false
 ```
 
-Antes de liberar `INSTAGRAM_DMS_ENABLED`, coloque a imagem aprovada do Sinapsi
-em `assets/sinapsi.jpg` (ou configure `SINAPSI_DM_IMAGE_PATH`). A primeira DM
-de psicologia não é enviada sem esse arquivo: o job falha antes de consumir
-cota e registra texto e imagem separadamente para não duplicar o texto em retry.
+A primeira DM é enviada somente em texto. O suporte genérico a anexos continua
+disponível na integração com o Instagram, mas o outreach automático não anexa
+imagens nem depende de arquivos locais.
 
 O handoff, quando liberado, valida o destino `5554981133456` e exige a instância
 Evolution `zaplovecrm`.

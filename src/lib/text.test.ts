@@ -8,6 +8,7 @@ test("extrai o primeiro nome e substitui o template", () => {
   assert.equal(firstName("tamara.psicóloga", "tamara.psicologa"), "Tamara");
   assert.equal(firstName(null, "psi.alinelevy"), "Alinelevy");
   assert.equal(firstName("Psicóloga TCC", "tamara.psicologa"), "Tamara");
+  assert.equal(firstName("𝖱𝖾𝗇𝖺𝗍𝗈 𝖲𝗈𝗍𝗍𝗂 | 𝖯𝗌𝗂𝖼ó𝗅𝗈𝗀𝗈 - 𝖡𝖧", "chamaorenato"), "Renato");
 });
 
 test("detecta opt-out em português", () => {

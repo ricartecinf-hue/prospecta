@@ -47,15 +47,16 @@ UNVERIFIED_CLAIMS (NÃO USAR NAS DMs):
   - Comparações com outros sistemas
 
 DM_1:
-  Oi {{first_name}}! Vi seu trabalho aqui no Instagram, muito bonito.
-  Desenvolvi o Sinapsi — um sistema de gestão feito especificamente
-  para psicólogos: agenda, prontuários e financeiro integrados,
-  por R$67/mês. Posso te mostrar como funciona em 5 minutos?
+  Oi, {{first_name}}! Tudo bem? Vi teu perfil e fiquei com uma curiosidade:
+  hoje tu usa algum sistema para organizar teus pacientes, prontuários,
+  agenda e financeiro do consultório? Ou ainda faz isso manualmente ou
+  de outra forma?
 
 DM_FOLLOWUP (após 48h sem resposta):
-  Oi {{first_name}}, tudo bem? Passei aqui de novo — o Sinapsi pode
-  facilitar bastante a gestão do seu consultório.
-  Sem compromisso, quer dar uma olhada rápida?
+  Oi {{first_name}}, passando só para não deixar minha pergunta perdida:
+  hoje você centraliza agenda, prontuários e financeiro ou ainda usa
+  ferramentas separadas? Se quiser, te mostro o Sinapsi por aqui — sem
+  compromisso.
 
 WHATSAPP_HANDOFF:  5554981133456
 

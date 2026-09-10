@@ -37,7 +37,7 @@ explicitamente pelo próprio AGENTS.md não são tratados como falha.
 | Score, teto de perfis fora do ICP e mínimo para DM | Implementado | `qualification-score.ts` e `qualifier.ts`. |
 | DM, persistência, follow-up e opt-out | Implementado | Outreach/follow-up/inbox; opt-out cancela jobs pendentes. |
 | Handoff com nome, @, score, perfil e resumo | Implementado | Mensagem validada em `handoff-handler.ts`; exige `5554981133456` e instância `zaplovecrm`. |
-| DM inicial do Sinapsi seguida de imagem | Implementado com pré-requisito local | `outreach-handler.ts` envia texto e anexo; falta fornecer o arquivo real `assets/sinapsi.jpg`. Sem ele o worker falha antes de consumir cota ou enviar texto. |
+| DM inicial do Sinapsi | Implementado | `outreach-handler.ts` envia somente texto; a imagem de referência não participa do outreach automático. |
 | Fontes geográficas médicas | Implementado | Quatro `location_id`s e validação de página/cidade. |
 
 ## Dashboard e configuração

@@ -116,8 +116,14 @@ async function checkChrome(): Promise<Check> {
     url?: string;
     webSocketDebuggerUrl?: string;
   }>;
-  const instagramTab = targets.find((target) => target.url?.includes("instagram.com"));
-  if (!instagramTab) throw new Error("abra e autentique uma aba do Instagram no Chrome dedicado");
+  let instagramTab = targets.find((target) => target.url?.includes("instagram.com"));
+  if (!instagramTab) {
+    instagramTab = await fetchChecked(
+      `${base}/json/new?${encodeURIComponent("https://www.instagram.com/")}`,
+      { method: "PUT" },
+    ).then((response) => response.json()) as { url?: string; webSocketDebuggerUrl?: string };
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
   if (!instagramTab.webSocketDebuggerUrl) throw new Error("a aba do Instagram não expôs um endpoint CDP");
   const session = await inspectInstagramTarget(instagramTab.webSocketDebuggerUrl);
   const loginRequired = session.hasLoginForm || /instagram\.com\/(accounts\/login|challenge)/i.test(session.url);

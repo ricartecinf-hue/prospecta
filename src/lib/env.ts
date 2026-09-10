@@ -16,7 +16,6 @@ const envSchema = z.object({
   EVOLUTION_API_KEY: z.string().optional(),
   EVOLUTION_INSTANCE: z.string().optional(),
   INSTAGRAM_DMS_ENABLED: z.enum(["true", "false"]).default("false"),
-  SINAPSI_DM_IMAGE_PATH: z.string().min(1).default("assets/sinapsi.jpg"),
   WHATSAPP_HANDOFF_ENABLED: z.enum(["true", "false"]).default("false"),
   TZ: z.string().default("America/Sao_Paulo"),
   WORKER_IDLE_MS: z.coerce.number().int().positive().default(5000),

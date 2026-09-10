@@ -1,9 +1,6 @@
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
 import { z } from "zod";
 import { recordSendFailure, recordSendSuccess } from "@/lib/circuit-breaker";
 import { getCampaignConfig, query, transaction } from "@/lib/db";
-import { env } from "@/lib/env";
 import { blockDisabledExternalAction } from "@/lib/external-actions";
 import { sendDirectMessage } from "@/lib/instagram";
 import { enqueueJob, type HandlerResult } from "@/lib/job-queue";
@@ -14,12 +11,7 @@ import type { CampaignConfig, Job, Lead } from "@/lib/types";
 
 const payloadSchema = z.object({ leadId: z.string().uuid() });
 
-export const SINAPSI_FIRST_DM_TEXT = `Oi {{first_name}}, tudo bem? Vi seu perfil e resolvi te enviar esta mensagem.
-Não sei se você já usa algum sistema de gestão para o consultório.
-
-Quero te apresentar o SinaPsi: agenda, prontuário, financeiro, pacientes, IA e gestão clínica trabalhando juntos em um único sistema feito para psicólogos.
-
-Se fizer sentido me avisa, posso liberar um acesso gratuito para você testar sem compromisso.`;
+export const SINAPSI_FIRST_DM_TEXT = `Oi, {{first_name}}! Tudo bem? Vi teu perfil e fiquei com uma curiosidade: hoje tu usa algum sistema para organizar teus pacientes, prontuários, agenda e financeiro do consultório? Ou ainda faz isso manualmente ou de outra forma?`;
 
 type SqlClient = { query: typeof query };
 
@@ -37,8 +29,6 @@ export interface OutreachDependencies {
   recordSendSuccess: typeof recordSendSuccess;
   recordSendFailure: typeof recordSendFailure;
   now: () => Date;
-  imagePath: () => string;
-  imageExists: (path: string) => boolean;
 }
 
 const defaults: OutreachDependencies = {
@@ -55,13 +45,7 @@ const defaults: OutreachDependencies = {
   recordSendSuccess,
   recordSendFailure,
   now: () => new Date(),
-  imagePath: () => resolve(process.cwd(), env().SINAPSI_DM_IMAGE_PATH),
-  imageExists: existsSync,
 };
-
-function messageWithImageMarker(message: string, imagePath?: string) {
-  return imagePath ? `${message}\n[Imagem enviada: ${imagePath.split("/").pop()}]` : message;
-}
 
 export function createOutreachHandler(overrides: Partial<OutreachDependencies> = {}) {
   const deps = { ...defaults, ...overrides };
@@ -115,17 +99,14 @@ export function createOutreachHandler(overrides: Partial<OutreachDependencies> =
 
     const campaign = await deps.getCampaignConfig(lead.niche);
     const text = deps.renderDmTemplate(campaign.dm_template_1, lead.full_name, lead.ig_username);
-    const imagePath = lead.niche === "psicologo" ? deps.imagePath() : undefined;
-    const storedMessage = messageWithImageMarker(text, imagePath);
 
     if (await wasSent(job.id)) {
-      const canContinue = await persistOutbound(lead, storedMessage, job.id);
+      const canContinue = await persistOutbound(lead, text, job.id);
       if (canContinue) await ensureFollowup(lead.id, job.id, campaign.followup_after_hours);
       return { action: "complete" };
     }
     const disabled = await deps.blockDisabledExternalAction(job, "instagram_dm");
     if (disabled) return disabled;
-    if (imagePath && !deps.imageExists(imagePath)) throw new Error(`Imagem obrigatória da primeira DM do Sinapsi não encontrada: ${imagePath}`);
 
     const startHour = Math.max(9, campaign.window_start_hour);
     const endHour = Math.min(20, campaign.window_end_hour);
@@ -142,11 +123,11 @@ export function createOutreachHandler(overrides: Partial<OutreachDependencies> =
         const locked = await client.query<Pick<Lead, "do_not_contact">>("SELECT do_not_contact FROM leads WHERE id = $1 FOR UPDATE", [lead.id]);
         if (!locked.rows[0] || locked.rows[0].do_not_contact) return false;
         const textAlreadySent = await wasTextSent(job.id);
-        await deps.sendDirectMessage(lead.ig_username, text, { jobId: job.id, kind: job.kind }, { imagePath, skipText: textAlreadySent });
+        await deps.sendDirectMessage(lead.ig_username, text, { jobId: job.id, kind: job.kind }, { skipText: textAlreadySent });
         await client.query(
           `INSERT INTO conversations (lead_id, direction, channel, body, external_ref)
            VALUES ($1, 'outbound', 'chrome', $2, $3) ON CONFLICT DO NOTHING`,
-          [lead.id, storedMessage, job.id],
+          [lead.id, text, job.id],
         );
         await client.query("UPDATE leads SET status = 'dm_sent', updated_at = NOW() WHERE id = $1", [lead.id]);
         return true;

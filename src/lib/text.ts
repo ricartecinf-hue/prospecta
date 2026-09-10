@@ -6,7 +6,7 @@ function isProfessionalLabel(value: string) {
 
 function nameTokens(value: string) {
   return value
-    .normalize("NFC")
+    .normalize("NFKC")
     .split(/[\s._|/\\-]+/u)
     .map((part) => part.replace(/[^\p{L}'’-]/gu, ""))
     .filter(Boolean);

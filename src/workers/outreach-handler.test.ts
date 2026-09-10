@@ -23,7 +23,7 @@ const campaign: CampaignConfig = {
 
 function rows<T>(value: T[]) { return { rows: value }; }
 
-function setup(options: { lead?: Lead | null; sent?: boolean; textSent?: boolean; disabled?: unknown; inside?: boolean; reservation?: unknown; imageExists?: boolean; sendError?: Error; locked?: boolean; followupExists?: boolean } = {}) {
+function setup(options: { lead?: Lead | null; sent?: boolean; textSent?: boolean; disabled?: unknown; inside?: boolean; reservation?: unknown; sendError?: Error; locked?: boolean; followupExists?: boolean } = {}) {
   const calls: Array<{ sql: string; values: unknown[] }> = [];
   const sent: unknown[][] = [];
   const recorded = { success: 0, failures: 0, enqueued: 0 };
@@ -56,8 +56,6 @@ function setup(options: { lead?: Lead | null; sent?: boolean; textSent?: boolean
     recordSendSuccess: async () => { recorded.success += 1; },
     recordSendFailure: async () => { recorded.failures += 1; },
     now: () => new Date("2026-01-01T12:00:00Z"),
-    imagePath: () => "/assets/sinapsi.jpg",
-    imageExists: () => options.imageExists ?? true,
   });
   return { handler, calls, sent, recorded };
 }
@@ -71,12 +69,6 @@ test("outreach encerra lead ausente ou inelegível sem ação externa", async ()
   assert.deepEqual(await optedOut.handler(job), { action: "complete" });
 });
 
-test("outreach falha antes de reservar cota quando a imagem do Sinapsi não existe", async () => {
-  const { handler, calls } = setup({ imageExists: false });
-  await assert.rejects(() => handler(job), /Imagem obrigatória/);
-  assert.equal(calls.some((call) => call.sql.includes("increment_rate_limit")), false);
-});
-
 test("outreach respeita trava, janela e limite diário", async () => {
   const blocked = setup({ disabled: { action: "reschedule", runAfter: new Date(), reason: "desativada" } });
   assert.equal((await blocked.handler(job)).action, "reschedule");
@@ -88,14 +80,15 @@ test("outreach respeita trava, janela e limite diário", async () => {
   assert.equal((await capped.handler(job)).action, "reschedule");
 });
 
-test("outreach envia texto e imagem, persiste marcador e agenda follow-up", async () => {
+test("outreach envia somente texto e agenda follow-up", async () => {
   const { handler, sent, calls, recorded } = setup();
   assert.deepEqual(await handler(job), { action: "complete" });
   assert.equal(sent.length, 1);
   assert.equal(sent[0][0], "ana.psi");
-  assert.match(String(sent[0][1]), /Oi Ana, tudo bem/);
-  assert.deepEqual(sent[0][3], { imagePath: "/assets/sinapsi.jpg", skipText: false });
-  assert.equal(calls.some((call) => call.values.some((value) => String(value).includes("[Imagem enviada: sinapsi.jpg]"))), true);
+  assert.match(String(sent[0][1]), /Oi, Ana! Tudo bem/);
+  assert.match(String(sent[0][1]), /Ou ainda faz isso manualmente ou de outra forma\?/);
+  assert.deepEqual(sent[0][3], { skipText: false });
+  assert.equal(calls.some((call) => call.values.some((value) => String(value).includes("[Imagem enviada:"))), false);
   assert.deepEqual(recorded, { success: 1, failures: 0, enqueued: 1 });
 });
 
@@ -112,11 +105,7 @@ test("outreach é idempotente após auditoria de envio e registra falha do Chrom
   assert.equal(failed.recorded.failures, 1);
 });
 
-test("outreach não anexa imagem fora do nicho Sinapsi e encerra se o lead virar opt-out", async () => {
-  const doctor = setup({ lead: { ...baseLead, niche: "medico" }, followupExists: true });
-  assert.deepEqual(await doctor.handler(job), { action: "complete" });
-  assert.deepEqual(doctor.sent[0][3], { imagePath: undefined, skipText: false });
-
+test("outreach encerra se o lead virar opt-out antes do envio", async () => {
   const locked = setup({ locked: true });
   assert.deepEqual(await locked.handler(job), { action: "complete" });
   assert.equal(locked.recorded.success, 0);
@@ -125,5 +114,5 @@ test("outreach não anexa imagem fora do nicho Sinapsi e encerra se o lead virar
 test("outreach não repete o texto quando uma tentativa anterior já o auditou", async () => {
   const retry = setup({ textSent: true });
   await retry.handler(job);
-  assert.deepEqual(retry.sent[0][3], { imagePath: "/assets/sinapsi.jpg", skipText: true });
+  assert.deepEqual(retry.sent[0][3], { skipText: true });
 });
