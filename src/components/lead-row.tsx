@@ -83,9 +83,6 @@ export function LeadRow({ lead }: { lead: Lead }) {
           {lead.whatsapp && <ContactLink href={`https://wa.me/${lead.whatsapp}`} label={`Abrir WhatsApp de @${lead.ig_username}`}><WhatsAppIcon /></ContactLink>}
         </div>
       </td>
-      <td className="px-5 py-5">
-        {lead.email ? <a href={`mailto:${lead.email}`} onClick={stopRowNavigation} className="text-blue-700 hover:underline">{lead.email}</a> : <span className="text-slate-400">—</span>}
-      </td>
       <td className="px-5 py-5">{lead.niche}</td>
       <td className="px-5 py-5"><span className={`inline-flex min-w-[2.5rem] justify-center rounded-full px-2.5 py-1 text-sm font-bold ${scoreBadgeClass(lead.score)}`}>{lead.score}</span></td>
       <td className="px-5 py-5"><Badge variant={lead.status}>{lead.status}</Badge></td>

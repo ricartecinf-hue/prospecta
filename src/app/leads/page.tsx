@@ -33,12 +33,11 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       </form>
       <Card className="overflow-hidden">
         <CardContent className="overflow-x-auto p-0">
-          <table className="w-full min-w-[900px] text-left text-sm">
+          <table className="w-full min-w-[800px] text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-5 py-3">Lead</th>
                 <th className="px-5 py-3">Contatos</th>
-                <th className="px-5 py-3">Email</th>
                 <th className="px-5 py-3">Nicho</th>
                 <th className="px-5 py-3">Score</th>
                 <th className="px-5 py-3">Status</th>
