@@ -86,7 +86,7 @@ test("outreach envia somente texto e agenda follow-up", async () => {
   assert.equal(sent.length, 1);
   assert.equal(sent[0][0], "ana.psi");
   assert.match(String(sent[0][1]), /Oi, Ana! Tudo bem/);
-  assert.match(String(sent[0][1]), /Ou ainda faz isso manualmente ou de outra forma\?/);
+  assert.match(String(sent[0][1]), /Ou faz isso de outra forma\?/);
   assert.deepEqual(sent[0][3], { skipText: false });
   assert.equal(calls.some((call) => call.values.some((value) => String(value).includes("[Imagem enviada:"))), false);
   assert.deepEqual(recorded, { success: 1, failures: 0, enqueued: 1 });

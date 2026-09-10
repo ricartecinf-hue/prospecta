@@ -49,8 +49,7 @@ UNVERIFIED_CLAIMS (NÃO USAR NAS DMs):
 DM_1:
   Oi, {{first_name}}! Tudo bem? Vi teu perfil e fiquei com uma curiosidade:
   hoje tu usa algum sistema para organizar teus pacientes, prontuários,
-  agenda e financeiro do consultório? Ou ainda faz isso manualmente ou
-  de outra forma?
+  agenda e financeiro do consultório? Ou faz isso de outra forma?
 
 DM_FOLLOWUP (após 48h sem resposta):
   Oi {{first_name}}, passando só para não deixar minha pergunta perdida:

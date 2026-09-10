@@ -11,7 +11,7 @@ import type { CampaignConfig, Job, Lead } from "@/lib/types";
 
 const payloadSchema = z.object({ leadId: z.string().uuid() });
 
-export const SINAPSI_FIRST_DM_TEXT = `Oi, {{first_name}}! Tudo bem? Vi teu perfil e fiquei com uma curiosidade: hoje tu usa algum sistema para organizar teus pacientes, prontuários, agenda e financeiro do consultório? Ou ainda faz isso manualmente ou de outra forma?`;
+export const SINAPSI_FIRST_DM_TEXT = `Oi, {{first_name}}! Tudo bem? Vi teu perfil e fiquei com uma curiosidade: hoje tu usa algum sistema para organizar teus pacientes, prontuários, agenda e financeiro do consultório? Ou faz isso de outra forma?`;
 
 type SqlClient = { query: typeof query };
 

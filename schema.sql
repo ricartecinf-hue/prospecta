@@ -301,7 +301,7 @@ INSERT INTO prospecta.campaign_config (
     'R$67/mês com suporte incluso',
     'Funciona para atendimento presencial e online'
   ],
-  'Oi, {{first_name}}! Tudo bem? Vi teu perfil e fiquei com uma curiosidade: hoje tu usa algum sistema para organizar teus pacientes, prontuários, agenda e financeiro do consultório? Ou ainda faz isso manualmente ou de outra forma?',
+  'Oi, {{first_name}}! Tudo bem? Vi teu perfil e fiquei com uma curiosidade: hoje tu usa algum sistema para organizar teus pacientes, prontuários, agenda e financeiro do consultório? Ou faz isso de outra forma?',
   'Oi {{first_name}}, passando só para não deixar minha pergunta perdida: hoje você centraliza agenda, prontuários e financeiro ou ainda usa ferramentas separadas? Se quiser, te mostro o Sinapsi por aqui — sem compromisso.',
   '5554981133456',
   30,
