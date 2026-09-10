@@ -22,7 +22,7 @@ explicitamente pelo próprio AGENTS.md não são tratados como falha.
 | Item | Status | Evidência / pendência |
 | --- | --- | --- |
 | Máximo de 30 DMs/dia | Implementado no código; migração pendente no ambiente | Contador corrigido para ser global à conta (`dm_total`), não por nicho. A migração 014 consolida os contadores legados, mas não foi aplicada nesta auditoria porque a conexão de banco configurada não resolveu o host. |
-| Intervalo aleatório de 90–240 s | Implementado | `reserveDmSlot()`. |
+| Intervalo aleatório de 180–240 s | Implementado | `reserveDmSlot()` usa uma faixa de 3–4 minutos, dentro do limite operacional de 90–240 s. |
 | Janela 09:00–20:00 | Implementado | Outreach e follow-up validam antes de enviar. |
 | Circuit breaker de 3 falhas/2 h | Implementado | Agora a pausa é honrada por toda ação externa, não apenas registrada. |
 | Sessão expirada sem auto-login | Implementado | Audita e pausa a automação para login manual. |

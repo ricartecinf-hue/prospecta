@@ -61,7 +61,7 @@ WHATSAPP_HANDOFF:  5554981133456
 
 LIMITES:
   Max DMs por dia:      30
-  Intervalo entre DMs:  90–240 segundos (aleatório)
+  Intervalo entre DMs:  180–240 segundos (aleatório)
   Janela de operação:   09:00–20:00 (horário de Brasília)
   Score mínimo p/ DM:   65
   Follow-up após:       48 horas

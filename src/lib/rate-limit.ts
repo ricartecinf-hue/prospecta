@@ -2,7 +2,7 @@ import { transaction } from "./db";
 
 export type DmReservation = { allowed: true; nextAllowedAt: Date } | { allowed: false; retryAt: Date; reason: "daily_limit" | "interval" };
 
-export async function reserveDmSlot(maxPerDay: number, _niche: string, minSeconds = 90, maxSeconds = 240): Promise<DmReservation> {
+export async function reserveDmSlot(maxPerDay: number, _niche: string, minSeconds = 180, maxSeconds = 240): Promise<DmReservation> {
   return transaction(async (client) => {
     // Trava única: é a mesma sessão do Chrome/Instagram enviando por todos os nichos,
     // então o intervalo mínimo entre DMs precisa ser global, não por nicho.
