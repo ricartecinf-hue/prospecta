@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
+import { leadStatusLabel } from "@/lib/display";
 import type { Lead } from "@/lib/types";
 
 function scoreBadgeClass(score: number) {
@@ -85,7 +86,7 @@ export function LeadRow({ lead }: { lead: Lead }) {
       </td>
       <td className="px-5 py-5">{lead.niche}</td>
       <td className="px-5 py-5"><span className={`inline-flex min-w-[2.5rem] justify-center rounded-full px-2.5 py-1 text-sm font-bold ${scoreBadgeClass(lead.score)}`}>{lead.score}</span></td>
-      <td className="px-5 py-5"><Badge variant={lead.status}>{lead.status}</Badge></td>
+      <td className="px-5 py-5"><Badge variant={lead.status}>{leadStatusLabel(lead.status)}</Badge></td>
       <td className="px-5 py-5 text-slate-500">{lead.discovered_at.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}</td>
     </tr>
   );

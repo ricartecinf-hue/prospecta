@@ -1,7 +1,8 @@
 import { LeadRow } from "@/components/lead-row";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCampaignConfigs, query } from "@/lib/db";
-import type { Lead } from "@/lib/types";
+import { LEAD_STATUS_LABELS } from "@/lib/display";
+import type { Lead, LeadStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
     <div className="space-y-6">
       <div><p className="text-sm font-semibold text-blue-700">PIPELINE</p><h1 className="mt-1 text-3xl font-bold">Leads</h1></div>
       <form className="flex flex-wrap gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-        <select name="status" defaultValue={filters.status ?? ""} className="rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="">Todos os status</option>{["discovered","qualified","disqualified","dm_sent","replied","handed_off","converted","do_not_contact"].map((status) => <option key={status} value={status}>{status}</option>)}</select>
+        <select name="status" defaultValue={filters.status ?? ""} className="rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="">Todos os status</option>{(Object.keys(LEAD_STATUS_LABELS) as LeadStatus[]).map((status) => <option key={status} value={status}>{LEAD_STATUS_LABELS[status]}</option>)}</select>
         <select name="niche" defaultValue={niche} className="rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="">Todos os nichos</option>{nicheOptions.map((value) => <option key={value} value={value}>{value}</option>)}</select>
         <button className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Filtrar</button>
       </form>

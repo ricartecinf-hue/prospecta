@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { query } from "@/lib/db";
+import { leadStatusLabel } from "@/lib/display";
 import type { Lead } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   if (!lead) notFound();
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-semibold text-blue-700">@{lead.ig_username}</p><h1 className="mt-1 text-3xl font-bold">{lead.full_name || "Nome não informado"}</h1></div><Badge variant={lead.status}>{lead.status}</Badge></div>
+      <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-semibold text-blue-700">@{lead.ig_username}</p><h1 className="mt-1 text-3xl font-bold">{lead.full_name || "Nome não informado"}</h1></div><Badge variant={lead.status}>{leadStatusLabel(lead.status)}</Badge></div>
       <div className="grid gap-6 lg:grid-cols-[1fr_1.5fr]">
         <Card><CardHeader><h2 className="font-semibold">Perfil e qualificação</h2></CardHeader><CardContent className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
