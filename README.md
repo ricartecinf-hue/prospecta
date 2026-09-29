@@ -148,10 +148,11 @@ Se usar o modo híbrido, pause ou remova o serviço `prospecta-jobs` do EasyPane
 
 ## Operação e manutenção
 
-- `/dashboard`: métricas do dia, contatos diretos, fila, circuit breaker e auditoria recente.
+- `/dashboard`: métricas comerciais, funil acumulado, conversões e atividade de contato.
 - `/leads`: filtros por status/nicho, ordenação por score e atalhos para Instagram, WhatsApp e email.
 - `/leads/[id]`: todos os dados do perfil, links de contato, justificativa, detalhamento do score e conversa.
 - `/config`: ICP, fontes, claims, templates e limites.
+- `/diagnostico`: fila, circuit breaker, auditoria e erros técnicos, separados da visão comercial.
 - Jobs `dead`: consulte `last_error`, corrija a causa e só então reagende manualmente no banco.
 - Auditoria: `SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 100;`.
 - Consumo Gemini: `SELECT date_trunc('month', created_at), model, SUM(estimated_cost_usd) FROM ai_usage GROUP BY 1, 2;`.

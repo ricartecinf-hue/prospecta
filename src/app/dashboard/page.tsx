@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ResumeButton } from "@/components/resume-button";
 import { getCircuitState } from "@/lib/circuit-breaker";
 import { query } from "@/lib/db";
-import { conversionRate, eventLabel, jobKindLabel, jobStatusLabel } from "@/lib/display";
+import { conversionRate } from "@/lib/display";
 
 export const dynamic = "force-dynamic";
 
@@ -26,23 +25,6 @@ interface DashboardMetrics {
 interface CampaignSummary {
   total_campaigns: number;
   active_campaigns: number;
-}
-
-interface JobSummary {
-  status: string;
-  count: number;
-}
-
-interface JobKindSummary {
-  kind: string;
-  pending: number;
-  running: number;
-  dead: number;
-}
-
-interface RecentEvent {
-  event: string;
-  created_at: Date;
 }
 
 const numberFormatter = new Intl.NumberFormat("pt-BR");
@@ -69,7 +51,7 @@ function MetricCard({ label, value, detail }: { label: string; value: string | n
 }
 
 export default async function DashboardPage() {
-  const [metricsResult, campaignsResult, jobsResult, jobsByKindResult, eventsResult, circuit] = await Promise.all([
+  const [metricsResult, campaignsResult, circuit] = await Promise.all([
     query<DashboardMetrics>(`SELECT
       (SELECT COUNT(*)::int FROM leads WHERE discovered_at >= date_trunc('day', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo') AS leads_today,
       (SELECT COUNT(*)::int FROM conversations WHERE direction = 'outbound' AND sent_at >= date_trunc('day', NOW() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo') AS dms_today,
@@ -87,16 +69,6 @@ export default async function DashboardPage() {
       COUNT(*)::int AS total_campaigns,
       COUNT(*) FILTER (WHERE active)::int AS active_campaigns
       FROM campaign_config`),
-    query<JobSummary>("SELECT status, COUNT(*)::int AS count FROM jobs GROUP BY status ORDER BY status"),
-    query<JobKindSummary>(`SELECT kind,
-      COUNT(*) FILTER (WHERE status = 'pending')::int AS pending,
-      COUNT(*) FILTER (WHERE status = 'running')::int AS running,
-      COUNT(*) FILTER (WHERE status = 'dead')::int AS dead
-      FROM jobs
-      WHERE status IN ('pending', 'running', 'dead')
-      GROUP BY kind
-      ORDER BY dead DESC, pending DESC, kind`),
-    query<RecentEvent>("SELECT event, created_at FROM audit_log ORDER BY created_at DESC LIMIT 8"),
     getCircuitState(),
   ]);
 
@@ -115,7 +87,6 @@ export default async function DashboardPage() {
     { label: "Encaminhados", value: metrics.handed_off_leads, rate: conversionRate(metrics.handed_off_leads, metrics.replied_leads), description: "das respostas" },
   ];
 
-  const statusTotals = Object.fromEntries(jobsResult.rows.map((row) => [row.status, row.count]));
   const banner = circuitPaused
     ? {
         title: "Automação pausada por segurança",
@@ -125,8 +96,8 @@ export default async function DashboardPage() {
       }
     : campaignPaused
       ? {
-          title: "Sistema pausado",
-          description: `As ${campaigns.total_campaigns} campanhas estão inativas. A fila permanece preservada e nenhuma campanha deve avançar até ser reativada.`,
+          title: "Campanhas em pausa",
+          description: `As ${campaigns.total_campaigns} campanhas estão pausadas. Seus leads, histórico e configurações continuam disponíveis para análise.`,
           className: "border-amber-200 bg-amber-50 text-amber-950",
           dotClassName: "bg-amber-500",
         }
@@ -143,7 +114,7 @@ export default async function DashboardPage() {
         <div>
           <p className="text-sm font-semibold text-blue-700">PROSPECTA</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">Visão geral</h1>
-          <p className="mt-2 text-sm text-slate-500">Saúde da operação, resultados e próximos pontos de atenção.</p>
+          <p className="mt-2 text-sm text-slate-500">Resultados da prospecção e evolução do seu funil comercial.</p>
         </div>
         <div className="flex gap-2">
           <Link href="/leads" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-blue-300 hover:text-blue-700">Ver leads</Link>
@@ -159,7 +130,7 @@ export default async function DashboardPage() {
           </div>
           <p className="mt-1 max-w-3xl text-sm leading-6 opacity-80">{banner.description}</p>
         </div>
-        {circuitPaused ? <ResumeButton /> : campaignPaused ? <Link href="/config" className="rounded-lg bg-amber-900 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800">Revisar campanhas</Link> : null}
+        {circuitPaused ? <ResumeButton /> : campaignPaused ? <Link href="/config" className="rounded-lg bg-amber-900 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800">Gerenciar campanhas</Link> : null}
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -201,40 +172,7 @@ export default async function DashboardPage() {
           <CardContent className="space-y-5">
             <div><p className="text-xs font-medium uppercase tracking-wide text-slate-500">Última mensagem enviada</p><p className="mt-1 font-semibold text-slate-900">{formatDate(metrics.last_outbound)}</p></div>
             <div><p className="text-xs font-medium uppercase tracking-wide text-slate-500">Última resposta registrada</p><p className="mt-1 font-semibold text-slate-900">{formatDate(metrics.last_inbound)}</p></div>
-            <div className="rounded-xl bg-slate-50 p-4"><p className="text-sm font-medium text-slate-700">Leitura recomendada</p><p className="mt-1 text-sm leading-6 text-slate-500">O volume de qualificados é alto, mas o avanço após o contato é o principal gargalo.</p></div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">Saúde da fila</h2><p className="mt-1 text-sm text-slate-500">Trabalhos preservados e pontos que exigem correção.</p></div><div className="flex flex-wrap gap-2">{jobsResult.rows.map((row) => <Badge key={row.status} variant={row.status}>{jobStatusLabel(row.status)}: {row.count}</Badge>)}</div></div>
-          </CardHeader>
-          <CardContent>
-            <div className="divide-y divide-slate-100">
-              {jobsByKindResult.rows.map((row) => (
-                <div key={row.kind} className="grid grid-cols-[1fr_auto] items-center gap-4 py-3 first:pt-0 last:pb-0">
-                  <div><p className="text-sm font-medium text-slate-800">{jobKindLabel(row.kind)}</p><p className="mt-0.5 text-xs text-slate-500">{row.pending} aguardando · {row.running} em execução</p></div>
-                  {row.dead > 0 ? <Badge variant="dead">{row.dead} interrompido{row.dead === 1 ? "" : "s"}</Badge> : <span className="text-xs font-medium text-emerald-700">Sem bloqueios</span>}
-                </div>
-              ))}
-              {jobsByKindResult.rows.length === 0 && <p className="text-sm text-slate-500">Nenhum job aguardando ou interrompido.</p>}
-            </div>
-            {(statusTotals.dead ?? 0) > 0 && <p className="mt-5 rounded-xl bg-red-50 p-3 text-sm text-red-800">Há {statusTotals.dead} jobs interrompidos. Corrija a causa antes de reativar a fila.</p>}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><h2 className="font-semibold">Atividade recente</h2><p className="mt-1 text-sm text-slate-500">Eventos operacionais mais recentes.</p></CardHeader>
-          <CardContent className="space-y-1">
-            {eventsResult.rows.map((row, index) => (
-              <div key={`${row.created_at.toISOString()}-${index}`} className="flex items-start justify-between gap-4 border-b border-slate-100 py-3 first:pt-0 last:border-0 last:pb-0">
-                <p className="text-sm font-medium text-slate-700">{eventLabel(row.event)}</p>
-                <time className="shrink-0 text-xs text-slate-500">{formatDate(row.created_at)}</time>
-              </div>
-            ))}
-            {eventsResult.rows.length === 0 && <p className="text-sm text-slate-500">Nenhuma atividade registrada.</p>}
+            <div className="rounded-xl bg-slate-50 p-4"><p className="text-sm font-medium text-slate-700">Próxima oportunidade</p><p className="mt-1 text-sm leading-6 text-slate-500">Acompanhe a passagem de contatos para respostas para comparar campanhas e abordagens.</p></div>
           </CardContent>
         </Card>
       </div>
