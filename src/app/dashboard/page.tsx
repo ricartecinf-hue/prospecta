@@ -106,7 +106,6 @@ export default async function DashboardPage() {
   const campaignPaused = campaigns.active_campaigns === 0;
   const followups = Math.max(0, metrics.outbound_messages - metrics.contacted_leads);
   const responseRate = conversionRate(metrics.replied_leads, metrics.contacted_leads);
-  const deadInboxJobs = jobsByKindResult.rows.find((row) => row.kind === "inbox_poll")?.dead ?? 0;
 
   const funnel = [
     { label: "Leads encontrados", value: metrics.total_leads, rate: null, description: "Base total" },
@@ -162,18 +161,6 @@ export default async function DashboardPage() {
         </div>
         {circuitPaused ? <ResumeButton /> : campaignPaused ? <Link href="/config" className="rounded-lg bg-amber-900 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800">Revisar campanhas</Link> : null}
       </section>
-
-      {metrics.contacted_leads > 0 && metrics.replied_leads === 0 && (
-        <section className="rounded-2xl border border-orange-200 bg-orange-50 p-5 text-orange-950">
-          <p className="text-sm font-semibold uppercase tracking-wide text-orange-700">Atenção à medição</p>
-          <h2 className="mt-1 text-lg font-semibold">Nenhuma resposta foi registrada após {metrics.contacted_leads} leads contatados.</h2>
-          <p className="mt-2 max-w-4xl text-sm leading-6 text-orange-900/80">
-            {deadInboxJobs > 0
-              ? `Existem ${deadInboxJobs} jobs interrompidos na leitura do inbox. Confira o Direct manualmente antes de avaliar a mensagem ou reativar a campanha.`
-              : "Confira o Direct manualmente e valide se a leitura de respostas está funcionando antes de reativar a campanha."}
-          </p>
-        </section>
-      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <MetricCard label="Leads hoje" value={numberFormatter.format(metrics.leads_today)} detail={`${numberFormatter.format(metrics.total_leads)} armazenados no total`} />
